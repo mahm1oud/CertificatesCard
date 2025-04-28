@@ -1274,24 +1274,24 @@ export default function TemplateFieldsPage() {
                               </div>
                               
                               <div className="grid gap-2 mt-4">
-                                <Label htmlFor="imageMaxHeight">الارتفاع الأقصى للصورة (بكسل)</Label>
+                                <Label htmlFor="imageMaxHeight">ارتفاع الصورة (% من القالب)</Label>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1">
                                     <Slider
                                       id="imageMaxHeight"
-                                      min={50}
-                                      max={500}
-                                      step={10}
-                                      value={[fieldFormData.style?.imageMaxHeight || 300]}
+                                      min={1}
+                                      max={100}
+                                      step={1}
+                                      value={[fieldFormData.style?.imageMaxHeight || 25]}
                                       onValueChange={([value]) => handleStyleChange('imageMaxHeight', value)}
                                     />
                                   </div>
                                   <Input
                                     type="number"
-                                    min={50}
-                                    max={500}
+                                    min={1}
+                                    max={100}
                                     className="w-20"
-                                    value={fieldFormData.style?.imageMaxHeight || 300}
+                                    value={fieldFormData.style?.imageMaxHeight || 25}
                                     onChange={(e) => handleStyleChange('imageMaxHeight', Number(e.target.value))}
                                   />
                                 </div>
@@ -1348,7 +1348,7 @@ export default function TemplateFieldsPage() {
                                 <p className="text-xs text-muted-foreground mt-1">المساحة المتوقعة التي ستشغلها الصورة على القالب</p>
                               </div>
                               <div className="text-sm">
-                                {fieldFormData.style?.imageMaxWidth || 300} × {fieldFormData.style?.imageMaxHeight || 300} بكسل
+                                {fieldFormData.style?.imageMaxWidth || 25}% × {fieldFormData.style?.imageMaxHeight || 25}% من أبعاد القالب
                               </div>
                             </div>
                             
@@ -1356,8 +1356,8 @@ export default function TemplateFieldsPage() {
                               <div 
                                 className={`relative ${fieldFormData.style?.imageRounded ? 'rounded-full overflow-hidden' : 'rounded-md'}`}
                                 style={{
-                                  width: Math.min(200, fieldFormData.style?.imageMaxWidth || 300) + 'px',
-                                  height: Math.min(200, fieldFormData.style?.imageMaxHeight || 300) + 'px',
+                                  width: Math.min(200, (fieldFormData.style?.imageMaxWidth || 25) * 2) + 'px',
+                                  height: Math.min(200, (fieldFormData.style?.imageMaxHeight || 25) * 2) + 'px',
                                   border: fieldFormData.style?.imageBorder ? '2px solid #64748b' : 'none',
                                   background: '#f1f5f9',
                                   display: 'flex',
@@ -1365,7 +1365,7 @@ export default function TemplateFieldsPage() {
                                   justifyContent: 'center'
                                 }}
                               >
-                                <ImageIcon className="text-gray-400" size={Math.min(60, fieldFormData.style?.imageMaxWidth || 300) / 2} />
+                                <ImageIcon className="text-gray-400" size={Math.min(60, (fieldFormData.style?.imageMaxWidth || 25) * 0.8)} />
                               </div>
                             </div>
                           </div>
