@@ -10,6 +10,7 @@ router.get('/display', isAdmin, async (req: Request, res: Response) => {
     const settings = await storage.getSettings('display');
     res.json({ settings: settings || {
       displayMode: 'multi',
+      templateViewMode: 'multi-page', // 'multi-page' للطريقة التقليدية، 'single-page' للطريقة الجديدة
       enableSocialFormats: true,
       defaultSocialFormat: 'instagram'
     }});
@@ -22,10 +23,11 @@ router.get('/display', isAdmin, async (req: Request, res: Response) => {
 // Update display settings
 router.post('/display', isAdmin, async (req: Request, res: Response) => {
   try {
-    const { displayMode, enableSocialFormats, defaultSocialFormat } = req.body;
+    const { displayMode, templateViewMode, enableSocialFormats, defaultSocialFormat } = req.body;
     
     const settings = {
       displayMode: displayMode || 'multi',
+      templateViewMode: templateViewMode || 'multi-page', // إضافة خيار عرض القوالب (متعدد الصفحات أو صفحة واحدة)
       enableSocialFormats: enableSocialFormats !== undefined ? enableSocialFormats : true,
       defaultSocialFormat: defaultSocialFormat || null
     };

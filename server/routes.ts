@@ -2017,6 +2017,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get display settings (public API - frontend access)
+  app.get('/api/display', async (req, res) => {
+    try {
+      // استخدم القيم الافتراضية في حالة عدم وجود إعدادات
+      let settings = {
+        displayMode: 'multi',
+        templateViewMode: 'multi-page', // 'multi-page' للطريقة التقليدية، 'single-page' للطريقة الجديدة
+        enableSocialFormats: true,
+        defaultSocialFormat: 'instagram'
+      };
+      
+      try {
+        // محاولة استرجاع الإعدادات من قاعدة البيانات
+        const storedSettings = await storage.getSettingsByCategory('display');
+        
+        if (storedSettings && storedSettings.length > 0) {
+          // تجميع الإعدادات في كائن واحد
+          storedSettings.forEach((setting) => {
+            if (setting.key && setting.value) {
+              try {
+                const value = JSON.parse(String(setting.value));
+                settings[setting.key] = value;
+              } catch (e) {
+                settings[setting.key] = setting.value;
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching display settings:', error);
+        // استمر باستخدام القيم الافتراضية
+      }
+      
+      res.json({ settings });
+    } catch (error) {
+      console.error('Error in display settings API:', error);
+      res.status(500).json({ message: 'Error fetching display settings' });
+    }
+  });
+
   // Serve uploaded card images and files
   app.use("/uploads", express.static(uploadsDir));
   

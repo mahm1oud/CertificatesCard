@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import HomePageSinglePage from "@/pages/home-single-page";
 import TemplateForm from "@/pages/template-form";
 import CardPreview from "@/pages/card-preview";
 import FullCardView from "@/pages/full-card-view";
@@ -13,7 +14,7 @@ import Footer from "@/components/footer";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { I18nProvider, useTranslation } from "@/lib/i18n";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 // Lazy load admin and auth pages
@@ -47,6 +48,44 @@ const LazyLoadingFallback = () => (
 
 function Router() {
   const { dir } = useTranslation();
+  const [displaySettings, setDisplaySettings] = useState<any>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  
+  // جلب إعدادات العرض
+  useEffect(() => {
+    async function fetchDisplaySettings() {
+      try {
+        // نحاول جلب الإعدادات من الخادم أولاً
+        const response = await fetch('/api/display');
+        
+        if (response.ok) {
+          const data = await response.json();
+          setDisplaySettings(data.settings || { templateViewMode: 'multi-page' });
+        } else {
+          // إذا فشل الطلب (مثلاً، المسار غير متاح)، نستخدم القيم الافتراضية
+          setDisplaySettings({ templateViewMode: 'multi-page' });
+        }
+      } catch (error) {
+        console.error('Error fetching display settings:', error);
+        // استخدام القيم الافتراضية في حال حدوث خطأ
+        setDisplaySettings({ templateViewMode: 'multi-page' });
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    }
+    
+    fetchDisplaySettings();
+  }, []);
+  
+  // اختيار مكون الصفحة الرئيسية بناءً على إعدادات العرض
+  const HomeComponent = displaySettings?.templateViewMode === 'single-page' 
+    ? HomePageSinglePage
+    : Home;
+    
+  if (isLoadingSettings) {
+    return <LazyLoadingFallback />;
+  }
+  
   return (
     <div dir={dir()} className="flex flex-col min-h-screen">
       <Header />
@@ -54,7 +93,9 @@ function Router() {
         <Suspense fallback={<LazyLoadingFallback />}>
           <Switch>
             {/* Public routes */}
-            <Route path="/" component={Home} />
+            <Route path="/" component={HomeComponent} />
+            <Route path="/single" component={HomePageSinglePage} />
+            <Route path="/multi" component={Home} />
             <Route path="/cards/:category/:templateId" component={TemplateForm} />
             <Route path="/preview/:category/:templateId/:cardId" component={CardPreview} />
             <Route path="/view/:cardId" component={FullCardView} />
