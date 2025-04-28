@@ -297,17 +297,18 @@ export async function generateOptimizedCardImage({
   
   /**
    * حساب معامل القياس لضمان التطابق بين معاينة الواجهة والسيرفر
-   * IMPORTANT: هذه القيمة يجب أن تتطابق مع BASE_IMAGE_WIDTH في ملف DraggableFieldsPreviewPro.tsx
+   * IMPORTANT: هذه القيمة يجب أن تتطابق مع:
+   * 1. BASE_IMAGE_WIDTH في ملف DraggableFieldsPreviewPro.tsx
+   * 2. BASE_IMAGE_WIDTH في ملف client/src/components/konva-image-generator/optimized-image-generator.tsx
    * هذا ضروري لضمان التطابق 100% بين المعاينة والصورة النهائية
    * 
    * 🔴 ملاحظة هامة: 
-   * - المحرر (DraggableFieldsPreviewPro) يستخدم القيمة BASE_IMAGE_WIDTH = 1000
-   * - هنا يجب أن نستخدم نفس القيمة للحصول على تطابق 100%
-   * - أي تغيير في هذه القيمة يجب أن يكون متزامنًا في كلا المكانين
+   * - تم توحيد قيمة العرض الأساسي كـ BASE_IMAGE_WIDTH = 1000 في جميع المكونات
+   * - أي تغيير في هذه القيمة يجب أن يكون متزامنًا في جميع المكونات
    */
-  const clientBaseWidth = 1000; // عرض الكانفاس الافتراضي في واجهة DraggableFieldsPreviewPro
-  const scaleFactor = outputWidth / clientBaseWidth;
-  console.log(`Using font scale factor: ${scaleFactor} (Server canvas: ${outputWidth}px, Client preview: ${clientBaseWidth}px)`);
+  const BASE_IMAGE_WIDTH = 1000; // عرض الكانفاس الافتراضي في جميع واجهات المعاينة
+  const scaleFactor = outputWidth / BASE_IMAGE_WIDTH;
+  console.log(`Using font scale factor: ${scaleFactor} (Server canvas: ${outputWidth}px, Client preview: ${BASE_IMAGE_WIDTH}px)`);
   
   // إعداد سياق الرسم للنص
   ctx.textBaseline = 'middle';
