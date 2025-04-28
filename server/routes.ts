@@ -50,6 +50,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Serving static files from:", staticDir);
   }
   
+  /**
+   * دالة مساعدة لتحليل بيانات JSON بشكل آمن
+   * @param data البيانات المراد تحليلها
+   * @param defaultValue القيمة الافتراضية في حال فشل التحليل
+   * @returns البيانات المحللة أو القيمة الافتراضية
+   */
+  function parseJsonData(data: any, defaultValue: any): any {
+    try {
+      // إذا كان البيانات سلسلة نصية، حاول تحليلها
+      if (typeof data === 'string') {
+        return JSON.parse(data);
+      }
+      // إذا كان البيانات كائن، أرجعه كما هو
+      else if (data && typeof data === 'object') {
+        return data;
+      }
+      // في حال كانت البيانات غير محددة أو null، أرجع القيمة الافتراضية
+      return defaultValue;
+    } catch (error) {
+      console.warn(`فشل تحليل البيانات JSON: ${error}`);
+      return defaultValue;
+    }
+  }
+  
   // Setup file upload middleware
   const multerStorage = multer.diskStorage({
     destination: function(req, file, cb) {
@@ -1610,9 +1634,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         defaultValue: req.body.defaultValue || null,
         placeholder: req.body.placeholder || null,
         placeholderAr: req.body.placeholderAr || null,
-        options: req.body.options ? JSON.parse(JSON.stringify(req.body.options)) : [],
-        position: req.body.position ? JSON.parse(JSON.stringify(req.body.position)) : {},
-        style: req.body.style ? JSON.parse(JSON.stringify(req.body.style)) : {},
+        options: parseJsonData(req.body.options, []),
+        position: parseJsonData(req.body.position, { x: 50, y: 50 }),
+        style: parseJsonData(req.body.style, {
+          fontFamily: 'Cairo',
+          fontSize: 24,
+          fontWeight: 'normal',
+          color: '#000000',
+          align: 'center',
+          verticalPosition: 'middle'
+        }),
         displayOrder: req.body.displayOrder || 0,
         templateId: req.body.templateId
       };
