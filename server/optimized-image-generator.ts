@@ -546,10 +546,20 @@ export async function generateOptimizedCardImage({
       ctx.font = fontString;
       console.log(`Field ${fieldName} font: ${fontString} (original: ${originalFontSize}px, scaled: ${fontSize}px)`);
       
-      // تطبيق لون النص من خصائص الحقل
-      const textColor = style.color || '#000000';
+      // تطبيق لون النص من خصائص الحقل مع تحسين الوضوح
+      let textColor = '#000000'; // اللون الافتراضي أسود
+      
+      // التحقق من وجود لون للنص في خصائص الحقل
+      if (style.color && typeof style.color === 'string' && style.color.trim() !== '') {
+        textColor = style.color.trim();
+        console.log(`استخدام لون النص من خصائص الحقل: ${textColor}`);
+      } else {
+        console.log(`استخدام لون النص الافتراضي: ${textColor}`);
+      }
+      
+      // تطبيق لون النص على سياق الرسم
       ctx.fillStyle = textColor;
-      console.log(`Field ${fieldName} color: ${textColor}`);
+      console.log(`Field ${fieldName} color applied: ${textColor}`);
       
       // تطبيق محاذاة النص
       if (style.align) {

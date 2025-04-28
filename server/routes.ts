@@ -1432,9 +1432,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           defaultValue: fieldData.defaultValue,
           placeholder: fieldData.placeholder,
           placeholderAr: fieldData.placeholderAr,
-          options: fieldData.options ? JSON.parse(JSON.stringify(fieldData.options)) : [],
-          position: fieldData.position ? JSON.parse(JSON.stringify(fieldData.position)) : {},
-          style: fieldData.style ? JSON.parse(JSON.stringify(fieldData.style)) : {},
+          options: parseJsonData(fieldData.options, []),
+          position: parseJsonData(fieldData.position, { x: 50, y: 50 }),
+          style: parseJsonData(fieldData.style, {
+            fontFamily: 'Cairo',
+            fontSize: 24,
+            fontWeight: 'normal',
+            color: '#000000',
+            align: 'center',
+            verticalPosition: 'middle'
+          }),
           displayOrder: fieldData.displayOrder || 0,
           templateId: targetTemplateId
         };
