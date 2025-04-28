@@ -9,7 +9,7 @@
  * 4. يدعم المرونة في ضبط أبعاد الصورة الناتجة
  */
 
-import { createCanvas, loadImage } from 'canvas';
+import { createCanvas, loadImage, registerFont } from 'canvas';
 import sharp from 'sharp';
 import type { Template } from "@shared/schema";
 import path from "path";
@@ -20,14 +20,35 @@ import { db } from "./db";
 import { templateFields } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
-// أنماط خطوط عربية
+// تسجيل الخطوط العربية المدعومة
+try {
+  const fontsDir = path.join(process.cwd(), 'fonts');
+  
+  // تسجيل خط Cairo
+  registerFont(path.join(fontsDir, 'Cairo-Regular.ttf'), { family: 'Cairo' });
+  registerFont(path.join(fontsDir, 'Cairo-Bold.ttf'), { family: 'Cairo', weight: 'bold' });
+  
+  // تسجيل خط Tajawal
+  registerFont(path.join(fontsDir, 'Tajawal-Regular.ttf'), { family: 'Tajawal' });
+  registerFont(path.join(fontsDir, 'Tajawal-Bold.ttf'), { family: 'Tajawal', weight: 'bold' });
+  
+  // تسجيل خط Amiri
+  registerFont(path.join(fontsDir, 'Amiri-Regular.ttf'), { family: 'Amiri' });
+  registerFont(path.join(fontsDir, 'Amiri-Bold.ttf'), { family: 'Amiri', weight: 'bold' });
+
+  console.log("✅ تم تسجيل الخطوط العربية بنجاح");
+} catch (error) {
+  console.warn("⚠️ لم يتم تسجيل الخطوط العربية:", error);
+}
+
+// أنماط خطوط عربية للاستخدام داخل الكود
 const ARABIC_FONTS = {
   CAIRO: 'Cairo',
-  CAIRO_BOLD: 'Cairo Bold',
+  CAIRO_BOLD: 'Cairo',    // سنستخدم Cairo بدون Bold وسنضيف bold في الخصائص
   TAJAWAL: 'Tajawal',
-  TAJAWAL_BOLD: 'Tajawal Bold',
+  TAJAWAL_BOLD: 'Tajawal', // سنستخدم Tajawal بدون Bold وسنضيف bold في الخصائص
   AMIRI: 'Amiri',
-  AMIRI_BOLD: 'Amiri Bold',
+  AMIRI_BOLD: 'Amiri',    // سنستخدم Amiri بدون Bold وسنضيف bold في الخصائص
 };
 
 interface FieldConfig {
@@ -511,13 +532,14 @@ export async function generateOptimizedCardImage({
       // تسجيل معلومات الخط للتتبع
       console.log(`Field ${field.name} font: ${fontSize}px ${fontFamily} (original: ${originalFontSize}px, scaled: ${fontSize}px)`);
       
-      // إنشاء سلسلة الخط - تحسين التعامل مع أنواع الخطوط المختلفة
-      let fontString = '';
+      // تحسين التعامل مع أنواع الخطوط 
       let finalFontFamily = ARABIC_FONTS.CAIRO; // الخط الافتراضي
+      let finalFontWeight = fontWeight || 'normal'; // وزن الخط الافتراضي
       
       // تخصيص أنواع الخطوط المدعومة بغض النظر عن حالة الأحرف
       const normalizedFontFamily = fontFamily.toLowerCase();
       
+      // تحديد نوع الخط المناسب
       if (normalizedFontFamily === 'amiri' || normalizedFontFamily === 'أميري') {
         finalFontFamily = ARABIC_FONTS.AMIRI;
       } else if (normalizedFontFamily === 'tajawal' || normalizedFontFamily === 'تجوال') {
@@ -529,18 +551,18 @@ export async function generateOptimizedCardImage({
         console.log(`تحذير: الخط "${fontFamily}" غير مدعوم، تم استخدام Cairo بدلاً منه`);
       }
       
-      // إنشاء سلسلة الخط مع وزن الخط
-      if (fontWeight === 'bold') {
-        if (normalizedFontFamily === 'amiri' || normalizedFontFamily === 'أميري') {
-          fontString = `bold ${fontSize}px ${ARABIC_FONTS.AMIRI_BOLD}`;
-        } else if (normalizedFontFamily === 'tajawal' || normalizedFontFamily === 'تجوال') {
-          fontString = `bold ${fontSize}px ${ARABIC_FONTS.TAJAWAL_BOLD}`;
-        } else {
-          fontString = `bold ${fontSize}px ${ARABIC_FONTS.CAIRO_BOLD}`;
-        }
+      // تنظيف وضبط وزن الخط (bold أو normal)
+      if (finalFontWeight === 'bold' || finalFontWeight === '700') {
+        finalFontWeight = 'bold';
       } else {
-        fontString = `${fontSize}px ${finalFontFamily}`;
+        finalFontWeight = 'normal';
       }
+      
+      // إنشاء سلسلة الخط النهائية مع دمج الوزن والحجم والنوع
+      const fontString = `${finalFontWeight} ${fontSize}px ${finalFontFamily}`;
+      
+      // تسجيل سلسلة الخط النهائية للتحقق
+      console.log(`Field ${fieldName} final font: ${fontString}`);
       
       // تطبيق الخط
       ctx.font = fontString;
