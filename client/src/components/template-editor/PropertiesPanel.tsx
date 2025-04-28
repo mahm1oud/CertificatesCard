@@ -343,6 +343,13 @@ export function PropertiesPanel({ selectedObject, canvas }: PropertiesPanelProps
                   }}
                   className="w-full border rounded px-2 py-1 text-sm"
                 >
+                  {/* خطوط عربية مدعومة في الخادم */}
+                  <option value="Cairo">Cairo - القاهرة</option>
+                  <option value="Tajawal">Tajawal - تجوال</option>
+                  <option value="Amiri">Amiri - أميري</option>
+                  <option disabled>──────────</option>
+                  
+                  {/* خطوط لاتينية قد لا تدعم العربية بشكل كامل - ستستخدم Cairo كبديل */}
                   <option value="Arial">Arial</option>
                   <option value="Helvetica">Helvetica</option>
                   <option value="Tahoma">Tahoma</option>

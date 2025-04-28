@@ -511,20 +511,35 @@ export async function generateOptimizedCardImage({
       // تسجيل معلومات الخط للتتبع
       console.log(`Field ${field.name} font: ${fontSize}px ${fontFamily} (original: ${originalFontSize}px, scaled: ${fontSize}px)`);
       
-      // إنشاء سلسلة الخط
+      // إنشاء سلسلة الخط - تحسين التعامل مع أنواع الخطوط المختلفة
       let fontString = '';
-      if (fontFamily === 'Amiri') {
-        fontString = fontWeight === 'bold' 
-          ? `bold ${fontSize}px ${ARABIC_FONTS.AMIRI_BOLD}`
-          : `${fontSize}px ${ARABIC_FONTS.AMIRI}`;
-      } else if (fontFamily === 'Tajawal') {
-        fontString = fontWeight === 'bold'
-          ? `bold ${fontSize}px ${ARABIC_FONTS.TAJAWAL_BOLD}`
-          : `${fontSize}px ${ARABIC_FONTS.TAJAWAL}`;
+      let finalFontFamily = ARABIC_FONTS.CAIRO; // الخط الافتراضي
+      
+      // تخصيص أنواع الخطوط المدعومة بغض النظر عن حالة الأحرف
+      const normalizedFontFamily = fontFamily.toLowerCase();
+      
+      if (normalizedFontFamily === 'amiri' || normalizedFontFamily === 'أميري') {
+        finalFontFamily = ARABIC_FONTS.AMIRI;
+      } else if (normalizedFontFamily === 'tajawal' || normalizedFontFamily === 'تجوال') {
+        finalFontFamily = ARABIC_FONTS.TAJAWAL;
+      } else if (normalizedFontFamily === 'cairo' || normalizedFontFamily === 'القاهرة') {
+        finalFontFamily = ARABIC_FONTS.CAIRO;
       } else {
-        fontString = fontWeight === 'bold'
-          ? `bold ${fontSize}px ${ARABIC_FONTS.CAIRO_BOLD}`
-          : `${fontSize}px ${ARABIC_FONTS.CAIRO}`;
+        // إذا كان الخط غير مدعوم، استخدم خط Cairo الافتراضي ولكن سجل تحذيرًا
+        console.log(`تحذير: الخط "${fontFamily}" غير مدعوم، تم استخدام Cairo بدلاً منه`);
+      }
+      
+      // إنشاء سلسلة الخط مع وزن الخط
+      if (fontWeight === 'bold') {
+        if (normalizedFontFamily === 'amiri' || normalizedFontFamily === 'أميري') {
+          fontString = `bold ${fontSize}px ${ARABIC_FONTS.AMIRI_BOLD}`;
+        } else if (normalizedFontFamily === 'tajawal' || normalizedFontFamily === 'تجوال') {
+          fontString = `bold ${fontSize}px ${ARABIC_FONTS.TAJAWAL_BOLD}`;
+        } else {
+          fontString = `bold ${fontSize}px ${ARABIC_FONTS.CAIRO_BOLD}`;
+        }
+      } else {
+        fontString = `${fontSize}px ${finalFontFamily}`;
       }
       
       // تطبيق الخط
