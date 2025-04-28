@@ -333,9 +333,9 @@ export default function TemplateFieldsPage() {
           color: "#ffffff",
           blur: 5
         },
-        // إعدادات افتراضية للصور - سيتم حسابها ديناميكياً بناءً على حجم القالب
-        imageMaxWidth: undefined, // سيتم حسابها تلقائياً كربع عرض القالب
-        imageMaxHeight: undefined, // سيتم حسابها تلقائياً كربع ارتفاع القالب
+        // إعدادات افتراضية للصور - كنسبة مئوية من أبعاد القالب
+        imageMaxWidth: 25, // 25% من عرض القالب
+        imageMaxHeight: 25, // 25% من ارتفاع القالب
         imageBorder: false,
         imageRounded: false,
         layer: 1
@@ -541,9 +541,9 @@ export default function TemplateFieldsPage() {
                         top: `${field.position?.y || 50}%`,
                         left: `${field.position?.x || 50}%`,
                         transform: 'translate(-50%, -50%)',
-                        // استخدام أبعاد نسبية للصورة استنادًا إلى حجم القالب
-                        width: `${field.style?.imageMaxWidth || '25%'}`,
-                        height: `${field.style?.imageMaxHeight || 'auto'}`,
+                        // استخدام أبعاد نسبية للصورة كنسبة مئوية من أبعاد القالب
+                        width: `${field.style?.imageMaxWidth || 25}%`,
+                        height: `${field.style?.imageMaxHeight || 25}%`,
                         maxWidth: '80%',
                         maxHeight: '80%',
                         zIndex: field.style?.layer || 1
@@ -552,7 +552,7 @@ export default function TemplateFieldsPage() {
                       <div className="flex flex-col items-center justify-center">
                         <ImageIcon className="h-12 w-12 text-green-500/70" />
                         <span className="text-sm font-medium mt-2">{field.label}</span>
-                        <span className="text-xs mt-1">{field.style?.imageMaxWidth}×{field.style?.imageMaxHeight}</span>
+                        <span className="text-xs mt-1">{field.style?.imageMaxWidth || 25}% × {field.style?.imageMaxHeight || 25}%</span>
                       </div>
                     </div>
                   ) : (

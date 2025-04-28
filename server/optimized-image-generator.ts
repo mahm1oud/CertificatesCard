@@ -410,9 +410,14 @@ export async function generateOptimizedCardImage({
         const img = await loadImage(imagePath);
         console.log(`Image loaded successfully: ${img.width}x${img.height}`);
         
-        // استخدام نفس منطق تحديد حجم الصور المستخدم في واجهة المستخدم (KonvaImageGenerator)
-        const imgMaxWidth = Math.round((style.imageMaxWidth || outputWidth / 4) * scaleFactor);
-        const imgMaxHeight = Math.round((style.imageMaxHeight || outputHeight / 4) * scaleFactor);
+        // استخدام النسب المئوية من أبعاد القالب لحساب الأبعاد الفعلية للصورة
+        // النسبة المئوية من حجم الصورة (على سبيل المثال: 25 تعني 25% من عرض القالب)
+        const widthPercentage = style.imageMaxWidth || 25; // افتراضي 25% من عرض القالب
+        const heightPercentage = style.imageMaxHeight || 25; // افتراضي 25% من ارتفاع القالب
+        
+        // تحويل النسب المئوية إلى أبعاد فعلية بالبكسل
+        const imgMaxWidth = Math.round((outputWidth * widthPercentage / 100));
+        const imgMaxHeight = Math.round((outputHeight * heightPercentage / 100));
         
         // حساب أبعاد الصورة مع الحفاظ على نسبة العرض إلى الارتفاع
         const aspectRatio = img.width / img.height;
