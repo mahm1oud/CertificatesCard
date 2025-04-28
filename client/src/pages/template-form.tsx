@@ -25,9 +25,9 @@ const TemplateForm = () => {
     retry: 3
   });
   
-  // جلب الحقول المخصصة للقالب (المسار العام - لا يتطلب تسجيل دخول)
+  // جلب الحقول المخصصة للقالب (المسار العام المباشر - لا يتطلب تسجيل دخول)
   const { data: templateFields, isLoading: isLoadingFields, error: templateFieldsError } = useQuery({
-    queryKey: [`/api/templates/${templateId}/fields`],
+    queryKey: [`/api/template-fields/${templateId}`],
     queryFn: getQueryFn(),
     enabled: !!templateId,
   });

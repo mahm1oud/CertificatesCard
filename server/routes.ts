@@ -1727,15 +1727,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Alternative endpoint for template fields that matches what frontend is actually using
-  // This fixes the 404 errors seen in logs
-  app.get("/api/templates/:templateId([0-9]+)/fields", async (req, res) => {
+  // واجهة مباشرة لحقول القالب تتوافق مع ما يستخدمه العميل
+  // هذا يصلح أخطاء 404 التي نراها في السجلات
+  app.get("/api/template-fields/:templateId([0-9]+)", async (req, res) => {
     try {
       const { templateId } = req.params;
       
       if (isNaN(parseInt(templateId))) {
         return res.status(400).json({ message: "رقم القالب غير صالح" });
       }
+      
+      console.log(`[DIRECT API] Fetching fields for template ID ${templateId}`);
       
       // Check if template exists
       const template = await storage.getTemplate(parseInt(templateId));
@@ -1745,10 +1747,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const fields = await storage.getTemplateFields(parseInt(templateId));
-      console.log(`Retrieved ${fields.length} fields for template ID ${templateId} (public fields API - numeric route)`);
+      console.log(`[DIRECT API] Retrieved ${fields.length} fields for template ID ${templateId}`);
       res.json(fields);
     } catch (error) {
-      console.error("Error fetching template fields (public - numeric route):", error);
+      console.error("[DIRECT API] Error fetching template fields:", error);
       res.status(500).json({ message: "حدث خطأ أثناء تحميل حقول القالب" });
     }
   });
