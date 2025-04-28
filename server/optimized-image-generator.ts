@@ -491,10 +491,25 @@ export async function generateOptimizedCardImage({
     } else {
       // 📝 معالجة حقول النصوص
       // استخراج خصائص الخط مع تطبيق معامل القياس
-      const originalFontSize = style.fontSize || 24;
+      
+      // استخدام حجم الخط المحدد في خصائص الحقل، مع الحد الأدنى والأقصى لضمان القراءة على جميع الأجهزة
+      let originalFontSize = style.fontSize || 24;
+      
+      // ضمان أن حجم الخط لا يقل عن 14 ولا يزيد عن 60 بكسل لضمان القراءة على جميع الأجهزة
+      if (originalFontSize < 14) originalFontSize = 14;
+      if (originalFontSize > 60) originalFontSize = 60;
+      
+      // تطبيق معامل القياس
       const fontSize = Math.round(originalFontSize * scaleFactor);
+      
+      // استخدام وزن الخط المحدد في الخصائص
       const fontWeight = style.fontWeight || '';
+      
+      // استخدام نوع الخط المحدد في الخصائص
       const fontFamily = style.fontFamily || 'Cairo';
+      
+      // تسجيل معلومات الخط للتتبع
+      console.log(`Field ${field.name} font: ${fontSize}px ${fontFamily} (original: ${originalFontSize}px, scaled: ${fontSize}px)`);
       
       // إنشاء سلسلة الخط
       let fontString = '';
@@ -516,10 +531,10 @@ export async function generateOptimizedCardImage({
       ctx.font = fontString;
       console.log(`Field ${fieldName} font: ${fontString} (original: ${originalFontSize}px, scaled: ${fontSize}px)`);
       
-      // تطبيق لون النص
-      if (style.color) {
-        ctx.fillStyle = style.color;
-      }
+      // تطبيق لون النص من خصائص الحقل
+      const textColor = style.color || '#000000';
+      ctx.fillStyle = textColor;
+      console.log(`Field ${fieldName} color: ${textColor}`);
       
       // تطبيق محاذاة النص
       if (style.align) {

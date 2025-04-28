@@ -122,20 +122,32 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
   // معالجة خصائص النص لاستخدامها في Konva
   const getTextProps = (field: FieldConfig) => {
     const style = field.style || {};
+    
+    // اختيار نوع الخط من خصائص الحقل أو استخدام القيمة الافتراضية
     const fontFamily = style.fontFamily || 'Cairo';
     
     // حساب حجم الخط بنفس الطريقة المستخدمة في السيرفر - مع مراعاة معامل القياس
     const scaleFactor = stageSize.width / BASE_IMAGE_WIDTH;
-    const fontSize = Math.round((style.fontSize || 24) * scaleFactor);
     
-    const fontWeight = style.fontWeight || '';
+    // استخدام حجم الخط المحدد في خصائص الحقل، مع الحد الأدنى والأقصى لضمان القراءة على جميع الأجهزة
+    let baseFontSize = style.fontSize || 24;
+    
+    // ضمان أن حجم الخط لا يقل عن 14 ولا يزيد عن 60 بكسل لضمان القراءة على جميع الأجهزة
+    if (baseFontSize < 14) baseFontSize = 14;
+    if (baseFontSize > 60) baseFontSize = 60;
+    
+    // تطبيق معامل القياس لتناسب حجم العرض
+    const fontSize = Math.round(baseFontSize * scaleFactor);
+    
+    // استخدام وزن الخط المحدد في خصائص الحقل
+    const fontWeight = style.fontWeight || 'normal';
     const fontStyle = fontWeight === 'bold' ? 'bold' : 'normal';
     
     // حساب موضع النص كنسبة مئوية (كما في السيرفر)
     const x = (field.position.x / 100) * stageSize.width;
     const y = (field.position.y / 100) * stageSize.height;
     
-    // المحاذاة الأفقية
+    // المحاذاة الأفقية حسب خصائص الحقل
     const align = style.align || 'center';
     
     // حساب الإزاحة حسب المحاذاة للتوسيط الصحيح
@@ -149,12 +161,15 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
       ? Math.round((style.maxWidth || 200) * scaleFactor)
       : Math.round(stageSize.width - (50 * scaleFactor));
     
-    // ظل النص
+    // ظل النص من خصائص الحقل
     const shadowEnabled = style.textShadow?.enabled || false;
     const shadowColor = shadowEnabled ? (style.textShadow?.color || 'black') : 'transparent';
     const shadowBlur = shadowEnabled ? (style.textShadow?.blur || 3) * scaleFactor : 0;
     
-    console.log(`Field ${field.name}: fontSize=${fontSize}, scaleFactor=${scaleFactor.toFixed(2)}, x=${x}, y=${y}`);
+    // لون النص من خصائص الحقل
+    const textColor = style.color || '#000000';
+    
+    console.log(`Field ${field.name}: font="${fontFamily} ${fontWeight} ${fontSize}px", color=${textColor}, scaleFactor=${scaleFactor.toFixed(2)}, x=${x}, y=${y}`);
     
     return {
       text: getFieldValue(field),
@@ -163,7 +178,7 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
       fontSize,
       fontFamily,
       fontStyle,
-      fill: style.color || '#000000',
+      fill: textColor,
       align,
       width,
       offsetX,
