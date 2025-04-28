@@ -1,0 +1,13 @@
+<svg width="800" height="800" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <rect width="100%" height="100%" fill="#fff8f8"/>
+  <rect x="40" y="40" width="720" height="720" stroke="#f5c4c4" stroke-width="10" fill="transparent"/>
+  <text x="400" y="200" font-family="Arial" font-size="50" text-anchor="middle" fill="#d4a1a1">دعوة زفاف</text>
+  <text x="400" y="280" font-family="Arial" font-size="30" text-anchor="middle" fill="#b28282">يتشرف</text>
+  <text x="400" y="340" font-family="Arial" font-size="30" text-anchor="middle" fill="#b28282">اسم العريس & اسم العروسة</text>
+  <text x="400" y="400" font-family="Arial" font-size="30" text-anchor="middle" fill="#b28282">بدعوتكم لحضور حفل زفافهما</text>
+  <text x="400" y="460" font-family="Arial" font-size="30" text-anchor="middle" fill="#b28282">يوم السبت ١٢/١٢/٢٠٢٥ </text>
+  <text x="400" y="520" font-family="Arial" font-size="30" text-anchor="middle" fill="#b28282">الساعة 8 مساءً</text>
+  <text x="400" y="580" font-family="Arial" font-size="30" text-anchor="middle" fill="#b28282">قاعة الأفراح الكبرى</text>
+  <path d="M300,650 C350,600 450,600 500,650 S550,700 600,650" stroke="#d4a1a1" stroke-width="3" fill="transparent"/>
+  <circle cx="400" cy="650" r="5" fill="#d4a1a1"/>
+</svg>
