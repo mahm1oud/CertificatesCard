@@ -1726,6 +1726,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "حدث خطأ أثناء تحميل حقول القالب" });
     }
   });
+  
+  // Alternative endpoint for template fields that matches what frontend is actually using
+  // This fixes the 404 errors seen in logs
+  app.get("/api/templates/:templateId([0-9]+)/fields", async (req, res) => {
+    try {
+      const { templateId } = req.params;
+      
+      if (isNaN(parseInt(templateId))) {
+        return res.status(400).json({ message: "رقم القالب غير صالح" });
+      }
+      
+      // Check if template exists
+      const template = await storage.getTemplate(parseInt(templateId));
+      
+      if (!template) {
+        return res.status(404).json({ message: "القالب غير موجود" });
+      }
+      
+      const fields = await storage.getTemplateFields(parseInt(templateId));
+      console.log(`Retrieved ${fields.length} fields for template ID ${templateId} (public fields API - numeric route)`);
+      res.json(fields);
+    } catch (error) {
+      console.error("Error fetching template fields (public - numeric route):", error);
+      res.status(500).json({ message: "حدث خطأ أثناء تحميل حقول القالب" });
+    }
+  });
 
   // Font CRUD operations (admin only)
   app.post("/api/admin/fonts", isAdmin, async (req, res) => {

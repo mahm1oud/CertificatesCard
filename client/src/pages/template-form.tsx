@@ -26,11 +26,18 @@ const TemplateForm = () => {
   });
   
   // جلب الحقول المخصصة للقالب (المسار العام - لا يتطلب تسجيل دخول)
-  const { data: templateFields, isLoading: isLoadingFields } = useQuery({
+  const { data: templateFields, isLoading: isLoadingFields, error: templateFieldsError } = useQuery({
     queryKey: [`/api/templates/${templateId}/fields`],
     queryFn: getQueryFn(),
     enabled: !!templateId,
   });
+
+  // طباعة معلومات تشخيصية للتأكد من العمل الصحيح
+  console.log(`[DEBUG] Template ID: ${templateId}, isLoadingFields: ${isLoadingFields}, 
+    fieldsCount: ${templateFields ? (Array.isArray(templateFields) ? templateFields.length : 'not array') : 'null'}`);
+  if (templateFieldsError) {
+    console.error(`[ERROR] Failed to fetch template fields:`, templateFieldsError);
+  }
   
   const [formData, setFormData] = useState({});
 
