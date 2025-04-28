@@ -1937,6 +1937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get template fields for certificates (public, no auth required)
   app.get("/api/certificate-templates/:id/fields", async (req, res) => {
     try {
       const { id } = req.params;
@@ -1955,6 +1956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const fields = await storage.getTemplateFields(templateId);
+      console.log(`Retrieved ${fields.length} fields for certificate template ID ${templateId} (public API)`);
       res.json(fields);
     } catch (error) {
       console.error("Error fetching certificate template fields:", error);

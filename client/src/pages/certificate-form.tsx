@@ -34,10 +34,10 @@ export default function CertificateForm() {
     enabled: !!templateId
   });
   
-  // Fetch template fields
+  // Fetch template fields - أزلنا إجبار تسجيل الدخول للحصول على الحقول المخصصة
   const { data: templateFields, isLoading: isLoadingFields } = useQuery<any[]>({
     queryKey: [`/api/certificate-templates/${templateId}/fields`],
-    queryFn: getQueryFn({ on401: "redirect-to-login" }),
+    queryFn: getQueryFn(), // إزالة التوجيه إلى صفحة تسجيل الدخول
     enabled: !!templateId
   });
   
@@ -289,7 +289,10 @@ export default function CertificateForm() {
   ];
   
   // Use template fields if available, otherwise use default fields
-  const fields = (templateFields && Array.isArray(templateFields) && templateFields.length > 0 ? templateFields : defaultFields) || [];
+  console.log("Template fields received:", templateFields);
+  const fields = (templateFields && Array.isArray(templateFields) && templateFields.length > 0) 
+    ? templateFields 
+    : defaultFields;
   
   return (
     <div className="container mx-auto py-6">
