@@ -1443,37 +1443,51 @@ export default function TemplateFieldsPage() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="grid gap-2">
-                            <Label htmlFor="imageMaxWidth">الحد الأقصى للعرض (بكسل)</Label>
-                            <Input
-                              id="imageMaxWidth"
-                              type="number"
-                              min="0"
-                              value={fieldFormData.style?.imageMaxWidth || 300}
-                              onChange={(e) => setFieldFormData({
-                                ...fieldFormData,
-                                style: {
-                                  ...fieldFormData.style,
-                                  imageMaxWidth: parseInt(e.target.value) || 300
-                                }
-                              })}
-                            />
+                            <Label htmlFor="imageMaxWidth">عرض الصورة (% من القالب)</Label>
+                            <div className="grid grid-flow-col gap-2 items-center">
+                              <Input
+                                id="imageMaxWidth"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={fieldFormData.style?.imageMaxWidth || 25}
+                                onChange={(e) => setFieldFormData({
+                                  ...fieldFormData,
+                                  style: {
+                                    ...fieldFormData.style,
+                                    imageMaxWidth: parseInt(e.target.value) || 25
+                                  }
+                                })}
+                              />
+                              <span className="text-lg font-semibold">%</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              نسبة مئوية من عرض القالب
+                            </p>
                           </div>
                           
                           <div className="grid gap-2">
-                            <Label htmlFor="imageMaxHeight">الحد الأقصى للارتفاع (بكسل)</Label>
-                            <Input
-                              id="imageMaxHeight"
-                              type="number"
-                              min="0"
-                              value={fieldFormData.style?.imageMaxHeight || 300}
-                              onChange={(e) => setFieldFormData({
-                                ...fieldFormData,
-                                style: {
-                                  ...fieldFormData.style,
-                                  imageMaxHeight: parseInt(e.target.value) || 300
-                                }
-                              })}
-                            />
+                            <Label htmlFor="imageMaxHeight">ارتفاع الصورة (% من القالب)</Label>
+                            <div className="grid grid-flow-col gap-2 items-center">
+                              <Input
+                                id="imageMaxHeight"
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={fieldFormData.style?.imageMaxHeight || 25}
+                                onChange={(e) => setFieldFormData({
+                                  ...fieldFormData,
+                                  style: {
+                                    ...fieldFormData.style,
+                                    imageMaxHeight: parseInt(e.target.value) || 25
+                                  }
+                                })}
+                              />
+                              <span className="text-lg font-semibold">%</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              نسبة مئوية من ارتفاع القالب
+                            </p>
                           </div>
                         </div>
                         
