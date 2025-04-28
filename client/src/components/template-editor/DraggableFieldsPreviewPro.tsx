@@ -11,13 +11,14 @@ import { Stage, Layer, Image as KonvaImage, Text, Group, Rect, Line } from 'reac
 import { Download, RotateCcw, RotateCw, ZoomIn, ZoomOut, Grid, Magnet } from 'lucide-react';
 
 /**
- * العرض المرجعي للتصميم الأصلي - يتطابق مع القيمة في server/optimized-image-generator.ts
+ * العرض المرجعي للتصميم الأصلي - يتطابق مع القيمة في جميع مكونات النظام
  * هذه القيمة مهمة جدًا لضمان التطابق 100% بين المعاينة والصورة النهائية
  * 
  * 🔴 ملاحظة مهمة: 
- * يجب أن تكون هذه القيمة متطابقة في كلا الملفين:
- * 1. `clientBaseWidth` في ملف `optimized-image-generator.ts`
- * 2. `BASE_IMAGE_WIDTH` في ملف `DraggableFieldsPreviewPro.tsx`
+ * يجب أن تكون هذه القيمة متطابقة في الملفات التالية:
+ * 1. `BASE_IMAGE_WIDTH` في ملف `server/optimized-image-generator.ts`
+ * 2. `BASE_IMAGE_WIDTH` في ملف `client/src/components/konva-image-generator/optimized-image-generator.tsx`
+ * 3. `BASE_IMAGE_WIDTH` في ملف `DraggableFieldsPreviewPro.tsx`
  */
 const BASE_IMAGE_WIDTH = 1000;
 
