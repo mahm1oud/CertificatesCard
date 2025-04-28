@@ -1250,24 +1250,24 @@ export default function TemplateFieldsPage() {
                           <div className="grid md:grid-cols-2 gap-6">
                             <div>
                               <div className="grid gap-2">
-                                <Label htmlFor="imageMaxWidth">العرض الأقصى للصورة (بكسل)</Label>
+                                <Label htmlFor="imageMaxWidth">عرض الصورة (% من القالب)</Label>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1">
                                     <Slider
                                       id="imageMaxWidth"
-                                      min={50}
-                                      max={500}
-                                      step={10}
-                                      value={[fieldFormData.style?.imageMaxWidth || 300]}
+                                      min={1}
+                                      max={100}
+                                      step={1}
+                                      value={[fieldFormData.style?.imageMaxWidth || 25]}
                                       onValueChange={([value]) => handleStyleChange('imageMaxWidth', value)}
                                     />
                                   </div>
                                   <Input
                                     type="number"
-                                    min={50}
-                                    max={500}
+                                    min={1}
+                                    max={100}
                                     className="w-20"
-                                    value={fieldFormData.style?.imageMaxWidth || 300}
+                                    value={fieldFormData.style?.imageMaxWidth || 25}
                                     onChange={(e) => handleStyleChange('imageMaxWidth', Number(e.target.value))}
                                   />
                                 </div>
