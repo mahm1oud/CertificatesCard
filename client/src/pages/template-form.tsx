@@ -25,10 +25,10 @@ const TemplateForm = () => {
     retry: 3
   });
   
-  // جلب الحقول المخصصة للقالب
+  // جلب الحقول المخصصة للقالب (المسار العام - لا يتطلب تسجيل دخول)
   const { data: templateFields, isLoading: isLoadingFields } = useQuery({
-    queryKey: [`/api/admin/template-fields/${templateId}`],
-    queryFn: getQueryFn({ on401: "redirect-to-login" }),
+    queryKey: [`/api/templates/${templateId}/fields`],
+    queryFn: getQueryFn(),
     enabled: !!templateId,
   });
   
@@ -184,9 +184,9 @@ const TemplateForm = () => {
       );
     }
     
-    // إذا كان لدينا حقول مخصصة للقالب، نستخدم نموذج مخصص
+    // إذا كان لدينا حقول مخصصة للقالب، نستخدم نموذج مخصص (يعمل الآن للمستخدمين غير المسجلين أيضاً)
     if (templateFields && Array.isArray(templateFields) && templateFields.length > 0) {
-      console.log("Using custom form with template fields:", templateFields);
+      console.log(`Using custom form with ${templateFields.length} template fields for template ${templateId}`);
       return <CustomForm 
         onChange={handleFormChange} 
         template={{
