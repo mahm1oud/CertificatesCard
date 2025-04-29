@@ -156,19 +156,35 @@ export const SocialMediaFormats: React.FC<SocialMediaFormatsProps> = ({
                       ({formats[formatKey].ratio})
                     </div>
                     
-                    <Button 
-                      className="mt-3 w-full"
-                      onClick={() => {
-                        // استخدم دالة التوليد من الأب إذا كانت متوفرة، وإلا استخدم الدالة المحلية
-                        if (onGenerateImage) {
-                          onGenerateImage();
-                        } else {
-                          handleGenerateImage();
-                        }
-                      }}
-                    >
-                      {t('share.generate')}
-                    </Button>
+                    <div className="mt-3 space-y-2">
+                      <Button 
+                        className="w-full"
+                        onClick={() => {
+                          // استخدم دالة التوليد من الأب إذا كانت متوفرة، وإلا استخدم الدالة المحلية
+                          if (onGenerateImage) {
+                            onGenerateImage();
+                          } else {
+                            handleGenerateImage();
+                          }
+                        }}
+                      >
+                        {t('share.generate')}
+                      </Button>
+                      
+                      {templateId && user?.role === 'admin' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full flex items-center gap-1 text-blue-600"
+                          asChild
+                        >
+                          <Link href={`/social-template-editor/${templateId}`}>
+                            <ExternalLink className="h-4 w-4" />
+                            {t('share.socialEditor') || 'محرر الشبكات الاجتماعية'}
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 

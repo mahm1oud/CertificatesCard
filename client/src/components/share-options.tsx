@@ -28,9 +28,10 @@ interface ShareOptionsProps {
   cardId: string | number;
   imageUrl: string;
   size?: 'sm' | 'md' | 'lg' | 'default';
+  templateId?: string | number; // إضافة معرف القالب للوصول إلى محرر الشبكات الاجتماعية
 }
 
-const ShareOptions: React.FC<ShareOptionsProps> = ({ cardId, imageUrl, size = 'default' }) => {
+const ShareOptions: React.FC<ShareOptionsProps> = ({ cardId, imageUrl, size = 'default', templateId }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<string>('instagram');
@@ -189,6 +190,7 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ cardId, imageUrl, size = 'd
                   selectedFormat={selectedFormat}
                   cardImageUrl={imageUrl}
                   onGenerateImage={generateImage}
+                  templateId={templateId}
                 />
                 
                 {isPending && (
