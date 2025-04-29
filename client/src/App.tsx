@@ -78,7 +78,7 @@ function Router() {
   }, []);
   
   // اختيار مكون الصفحة الرئيسية بناءً على إعدادات العرض
-  const HomeComponent = displaySettings?.templateViewMode === 'single-page' 
+  const HomeComponent = displaySettings?.displayMode === 'single' 
     ? HomePageSinglePage
     : Home;
     
