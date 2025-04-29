@@ -99,29 +99,8 @@ export default function AdminSidebar({ className }: AdminSidebarProps) {
     },
     {
       title: t('admin.menu.settings'),
-      icon: <Settings className="h-4 w-4" />,
-      children: [
-        {
-          title: t('admin.menu.general'),
-          href: '/admin/settings/general',
-          icon: <Settings className="h-4 w-4" />
-        },
-        {
-          title: t('admin.menu.languages'),
-          href: '/admin/settings/languages',
-          icon: <Languages className="h-4 w-4" />
-        },
-        {
-          title: t('admin.menu.auth'),
-          href: '/admin/settings/auth',
-          icon: <Shield className="h-4 w-4" />
-        },
-        {
-          title: t('admin.menu.site'),
-          href: '/admin/settings/site',
-          icon: <Globe className="h-4 w-4" />
-        }
-      ]
+      href: '/admin/settings',
+      icon: <Settings className="h-4 w-4" />
     }
   ];
 
