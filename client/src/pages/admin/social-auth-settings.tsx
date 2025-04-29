@@ -1,245 +1,467 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '@/lib/hooks/use-toast';
-import { useProtectedPage } from '@/lib/protected-route';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Loader2 } from 'lucide-react';
-import { PageHeader } from '@/components/ui/page-header';
-import { api } from '@/lib/api';
+import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { 
+  Loader2,
+  Save,
+  ExternalLink,
+  Facebook,
+  Twitter,
+  Linkedin,
+  Mail,
+  Shield,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-interface AuthSettings {
-  id: number;
-  provider: string;
-  enabled: boolean;
-  clientId: string | null;
-  clientSecret: string | null;
-  redirectUri: string | null;
-  scope: string | null;
-  additionalSettings: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export default function SocialAuthSettings() {
-  useProtectedPage({ role: 'admin' });
+export default function AdminSocialAuthSettingsPage() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<AuthSettings[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [formData, setFormData] = useState<Record<string, Partial<AuthSettings>>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Social Auth Settings
+  const [socialAuthSettings, setSocialAuthSettings] = useState({
+    enableFacebookAuth: false,
+    facebookAppId: "",
+    facebookAppSecret: "",
+    facebookCallbackUrl: "",
+    
+    enableGoogleAuth: false,
+    googleClientId: "",
+    googleClientSecret: "",
+    googleCallbackUrl: "",
+    
+    enableTwitterAuth: false,
+    twitterApiKey: "",
+    twitterApiSecret: "",
+    twitterCallbackUrl: "",
+    
+    enableLinkedinAuth: false,
+    linkedinClientId: "",
+    linkedinClientSecret: "",
+    linkedinCallbackUrl: "",
+  });
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get('/api/admin/auth-settings');
-        setSettings(response.data);
-        
-        // تهيئة بيانات النموذج مع البيانات المجلوبة
-        const initialFormData: Record<string, Partial<AuthSettings>> = {};
-        response.data.forEach((setting: AuthSettings) => {
-          initialFormData[setting.provider] = { ...setting };
-        });
-        setFormData(initialFormData);
-      } catch (error) {
-        console.error('Error fetching auth settings:', error);
-        toast({
-          title: 'خطأ',
-          description: 'فشل في جلب إعدادات المصادقة الاجتماعية',
-          variant: 'destructive'
-        });
-      } finally {
-        setLoading(false);
+  // Fetch social auth settings
+  const { isLoading } = useQuery({
+    queryKey: ['/api/admin/settings/social-auth'],
+    queryFn: getQueryFn({}),
+    onSuccess: (data) => {
+      if (data && data.settings) {
+        setSocialAuthSettings(data.settings);
       }
-    };
+    },
+    onError: (error) => {
+      console.error('Error fetching social auth settings:', error);
+      toast({
+        title: "خطأ في جلب الإعدادات",
+        description: "حدث خطأ أثناء جلب إعدادات المصادقة الاجتماعية",
+        variant: "destructive",
+      });
+    }
+  });
 
-    fetchSettings();
-  }, [toast]);
+  // Save social auth settings
+  const saveSocialAuthSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof socialAuthSettings) => {
+      return await apiRequest('/api/admin/settings/social-auth', {
+        method: 'POST',
+        body: { settings }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم حفظ الإعدادات",
+        description: "تم حفظ إعدادات المصادقة الاجتماعية بنجاح",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/social-auth'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في حفظ الإعدادات",
+        description: "حدث خطأ أثناء حفظ إعدادات المصادقة الاجتماعية",
+        variant: "destructive",
+      });
+      console.error('Error saving social auth settings:', error);
+    }
+  });
 
-  const handleChange = (provider: string, field: keyof AuthSettings, value: any) => {
-    setFormData(prev => ({
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    
+    saveSocialAuthSettingsMutation.mutate(socialAuthSettings, {
+      onSettled: () => {
+        setIsSaving(false);
+      }
+    });
+  };
+
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    
+    setSocialAuthSettings(prev => ({
       ...prev,
-      [provider]: {
-        ...prev[provider],
-        [field]: value
-      }
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
-  const handleSubmit = async (provider: string) => {
-    try {
-      setSaving({ ...saving, [provider]: true });
-      
-      const response = await api.put(`/api/admin/auth-settings/${provider}`, formData[provider]);
-      
-      // تحديث البيانات المحلية مع الاستجابة
-      setSettings(prev => 
-        prev.map(setting => 
-          setting.provider === provider ? response.data : setting
-        )
-      );
-      
-      toast({
-        title: 'تم الحفظ',
-        description: `تم تحديث إعدادات ${getProviderName(provider)} بنجاح`,
-      });
-    } catch (error) {
-      console.error(`Error updating ${provider} settings:`, error);
-      toast({
-        title: 'خطأ',
-        description: `فشل في تحديث إعدادات ${getProviderName(provider)}`,
-        variant: 'destructive'
-      });
-    } finally {
-      setSaving({ ...saving, [provider]: false });
-    }
-  };
-  
-  const getProviderName = (provider: string): string => {
-    const names: Record<string, string> = {
-      google: 'جوجل',
-      facebook: 'فيسبوك',
-      twitter: 'تويتر',
-      linkedin: 'لينكد إن'
-    };
-    return names[provider] || provider;
-  };
-  
-  const getProviderIcon = (provider: string): string => {
-    const icons: Record<string, string> = {
-      google: '🔍',
-      facebook: '📘',
-      twitter: '🐦',
-      linkedin: '💼'
-    };
-    return icons[provider] || '🔑';
-  };
-
-  if (loading) {
-    return (
-      <div className="container flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="container py-6">
-      <PageHeader
-        title="إعدادات المصادقة الاجتماعية"
-        subtitle="قم بإعداد وتكوين طرق تسجيل الدخول باستخدام حسابات وسائل التواصل الاجتماعي"
-      />
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">إعدادات المصادقة الاجتماعية</h1>
+          <p className="text-muted-foreground">
+            تكوين واجهات برمجة التطبيقات للمصادقة من خلال مواقع التواصل الاجتماعي
+          </p>
+        </div>
+      </div>
 
-      <Tabs defaultValue="google" className="mt-6">
-        <TabsList className="mb-4 grid w-full grid-cols-4">
-          {settings.map(setting => (
-            <TabsTrigger key={setting.provider} value={setting.provider} className="text-center">
-              <span className="ml-2">{getProviderIcon(setting.provider)}</span>
-              {getProviderName(setting.provider)}
-              {setting.enabled ? 
-                <span className="mr-2 py-0.5 px-1.5 bg-green-100 text-green-800 text-xs rounded-full">مفعّل</span> : 
-                <span className="mr-2 py-0.5 px-1.5 bg-gray-100 text-gray-600 text-xs rounded-full">معطل</span>
-              }
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Facebook Authentication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Facebook className="ml-2 h-5 w-5 text-blue-600" />
+                Facebook Login
+              </CardTitle>
+              <CardDescription>
+                إعدادات المصادقة باستخدام Facebook
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Switch
+                  id="enableFacebookAuth"
+                  name="enableFacebookAuth"
+                  checked={socialAuthSettings.enableFacebookAuth}
+                  onCheckedChange={(checked) => {
+                    setSocialAuthSettings(prev => ({
+                      ...prev,
+                      enableFacebookAuth: checked
+                    }));
+                  }}
+                />
+                <Label htmlFor="enableFacebookAuth">تفعيل تسجيل الدخول عبر Facebook</Label>
+              </div>
 
-        {settings.map(setting => (
-          <TabsContent key={setting.provider} value={setting.provider}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <span className="ml-2 text-xl">{getProviderIcon(setting.provider)}</span>
-                  {getProviderName(setting.provider)}
-                </CardTitle>
-                <CardDescription>
-                  قم بتكوين إعدادات المصادقة باستخدام {getProviderName(setting.provider)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <Switch
-                      id={`${setting.provider}-enabled`}
-                      checked={!!formData[setting.provider]?.enabled}
-                      onCheckedChange={(checked) => handleChange(setting.provider, 'enabled', checked)}
-                    />
-                    <Label htmlFor={`${setting.provider}-enabled`}>
-                      {formData[setting.provider]?.enabled ? 'مفعّل' : 'معطل'}
-                    </Label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`${setting.provider}-clientId`}>معرّف العميل (Client ID)</Label>
-                    <Input
-                      id={`${setting.provider}-clientId`}
-                      value={formData[setting.provider]?.clientId || ''}
-                      onChange={(e) => handleChange(setting.provider, 'clientId', e.target.value)}
-                      placeholder="أدخل معرّف العميل..."
-                      className="font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`${setting.provider}-clientSecret`}>السر (Client Secret)</Label>
-                    <Input
-                      id={`${setting.provider}-clientSecret`}
-                      type="password"
-                      value={formData[setting.provider]?.clientSecret || ''}
-                      onChange={(e) => handleChange(setting.provider, 'clientSecret', e.target.value)}
-                      placeholder={formData[setting.provider]?.clientSecret ? '●●●●●●●●●●●●' : 'أدخل السر...'}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`${setting.provider}-redirectUri`}>رابط إعادة التوجيه (Redirect URI)</Label>
-                    <Input
-                      id={`${setting.provider}-redirectUri`}
-                      value={formData[setting.provider]?.redirectUri || ''}
-                      onChange={(e) => handleChange(setting.provider, 'redirectUri', e.target.value)}
-                      placeholder={`/auth/${setting.provider}/callback`}
-                      className="font-mono text-sm"
-                    />
-                    <p className="text-xs text-gray-500">رابط إعادة التوجيه الكامل: 
-                      <code className="mx-1 p-1 bg-gray-100 rounded">
-                        {window.location.origin}/auth/{setting.provider}/callback
-                      </code>
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor={`${setting.provider}-scope`}>الصلاحيات (Scope)</Label>
-                    <Input
-                      id={`${setting.provider}-scope`}
-                      value={formData[setting.provider]?.scope || ''}
-                      onChange={(e) => handleChange(setting.provider, 'scope', e.target.value)}
-                      placeholder={setting.provider === 'google' ? 'profile,email' : 
-                                    setting.provider === 'linkedin' ? 'r_emailaddress,r_liteprofile' : 
-                                    'email'}
-                      className="font-mono text-sm"
-                    />
-                    <p className="text-xs text-gray-500">افصل بين الصلاحيات المتعددة بفاصلة (,)</p>
-                  </div>
-
-                  <Button 
-                    onClick={() => handleSubmit(setting.provider)} 
-                    disabled={saving[setting.provider]}
-                    className="mt-4"
-                  >
-                    {saving[setting.provider] && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                    حفظ الإعدادات
-                  </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="facebookAppId">معرف التطبيق (App ID)</Label>
+                  <Input
+                    id="facebookAppId"
+                    name="facebookAppId"
+                    value={socialAuthSettings.facebookAppId}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableFacebookAuth}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+                <div className="space-y-2">
+                  <Label htmlFor="facebookAppSecret">سر التطبيق (App Secret)</Label>
+                  <Input
+                    id="facebookAppSecret"
+                    name="facebookAppSecret"
+                    type="password"
+                    value={socialAuthSettings.facebookAppSecret}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableFacebookAuth}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="facebookCallbackUrl">رابط إعادة التوجيه (Callback URL)</Label>
+                <Input
+                  id="facebookCallbackUrl"
+                  name="facebookCallbackUrl"
+                  value={socialAuthSettings.facebookCallbackUrl}
+                  onChange={handleInputChange}
+                  disabled={!socialAuthSettings.enableFacebookAuth}
+                  placeholder="https://example.com/auth/facebook/callback"
+                />
+              </div>
+
+              <div className="flex items-center mt-2">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  size="sm" 
+                  className="text-muted-foreground p-0 h-auto space-x-1 space-x-reverse"
+                  onClick={() => window.open('https://developers.facebook.com/apps/', '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>فتح موقع مطوري Facebook</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Google Authentication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Mail className="ml-2 h-5 w-5 text-red-500" />
+                Google Login
+              </CardTitle>
+              <CardDescription>
+                إعدادات المصادقة باستخدام Google
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Switch
+                  id="enableGoogleAuth"
+                  name="enableGoogleAuth"
+                  checked={socialAuthSettings.enableGoogleAuth}
+                  onCheckedChange={(checked) => {
+                    setSocialAuthSettings(prev => ({
+                      ...prev,
+                      enableGoogleAuth: checked
+                    }));
+                  }}
+                />
+                <Label htmlFor="enableGoogleAuth">تفعيل تسجيل الدخول عبر Google</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="googleClientId">معرف العميل (Client ID)</Label>
+                  <Input
+                    id="googleClientId"
+                    name="googleClientId"
+                    value={socialAuthSettings.googleClientId}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableGoogleAuth}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="googleClientSecret">سر العميل (Client Secret)</Label>
+                  <Input
+                    id="googleClientSecret"
+                    name="googleClientSecret"
+                    type="password"
+                    value={socialAuthSettings.googleClientSecret}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableGoogleAuth}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="googleCallbackUrl">رابط إعادة التوجيه (Callback URL)</Label>
+                <Input
+                  id="googleCallbackUrl"
+                  name="googleCallbackUrl"
+                  value={socialAuthSettings.googleCallbackUrl}
+                  onChange={handleInputChange}
+                  disabled={!socialAuthSettings.enableGoogleAuth}
+                  placeholder="https://example.com/auth/google/callback"
+                />
+              </div>
+
+              <div className="flex items-center mt-2">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  size="sm" 
+                  className="text-muted-foreground p-0 h-auto space-x-1 space-x-reverse"
+                  onClick={() => window.open('https://console.developers.google.com/apis/credentials', '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>فتح وحدة تحكم Google للمطورين</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Twitter Authentication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Twitter className="ml-2 h-5 w-5 text-blue-400" />
+                Twitter Login
+              </CardTitle>
+              <CardDescription>
+                إعدادات المصادقة باستخدام Twitter
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Switch
+                  id="enableTwitterAuth"
+                  name="enableTwitterAuth"
+                  checked={socialAuthSettings.enableTwitterAuth}
+                  onCheckedChange={(checked) => {
+                    setSocialAuthSettings(prev => ({
+                      ...prev,
+                      enableTwitterAuth: checked
+                    }));
+                  }}
+                />
+                <Label htmlFor="enableTwitterAuth">تفعيل تسجيل الدخول عبر Twitter</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="twitterApiKey">مفتاح API (API Key)</Label>
+                  <Input
+                    id="twitterApiKey"
+                    name="twitterApiKey"
+                    value={socialAuthSettings.twitterApiKey}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableTwitterAuth}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="twitterApiSecret">سر API (API Secret)</Label>
+                  <Input
+                    id="twitterApiSecret"
+                    name="twitterApiSecret"
+                    type="password"
+                    value={socialAuthSettings.twitterApiSecret}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableTwitterAuth}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="twitterCallbackUrl">رابط إعادة التوجيه (Callback URL)</Label>
+                <Input
+                  id="twitterCallbackUrl"
+                  name="twitterCallbackUrl"
+                  value={socialAuthSettings.twitterCallbackUrl}
+                  onChange={handleInputChange}
+                  disabled={!socialAuthSettings.enableTwitterAuth}
+                  placeholder="https://example.com/auth/twitter/callback"
+                />
+              </div>
+
+              <div className="flex items-center mt-2">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  size="sm" 
+                  className="text-muted-foreground p-0 h-auto space-x-1 space-x-reverse"
+                  onClick={() => window.open('https://developer.twitter.com/en/portal/dashboard', '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>فتح موقع مطوري Twitter</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* LinkedIn Authentication */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Linkedin className="ml-2 h-5 w-5 text-blue-700" />
+                LinkedIn Login
+              </CardTitle>
+              <CardDescription>
+                إعدادات المصادقة باستخدام LinkedIn
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Switch
+                  id="enableLinkedinAuth"
+                  name="enableLinkedinAuth"
+                  checked={socialAuthSettings.enableLinkedinAuth}
+                  onCheckedChange={(checked) => {
+                    setSocialAuthSettings(prev => ({
+                      ...prev,
+                      enableLinkedinAuth: checked
+                    }));
+                  }}
+                />
+                <Label htmlFor="enableLinkedinAuth">تفعيل تسجيل الدخول عبر LinkedIn</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="linkedinClientId">معرف العميل (Client ID)</Label>
+                  <Input
+                    id="linkedinClientId"
+                    name="linkedinClientId"
+                    value={socialAuthSettings.linkedinClientId}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableLinkedinAuth}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="linkedinClientSecret">سر العميل (Client Secret)</Label>
+                  <Input
+                    id="linkedinClientSecret"
+                    name="linkedinClientSecret"
+                    type="password"
+                    value={socialAuthSettings.linkedinClientSecret}
+                    onChange={handleInputChange}
+                    disabled={!socialAuthSettings.enableLinkedinAuth}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="linkedinCallbackUrl">رابط إعادة التوجيه (Callback URL)</Label>
+                <Input
+                  id="linkedinCallbackUrl"
+                  name="linkedinCallbackUrl"
+                  value={socialAuthSettings.linkedinCallbackUrl}
+                  onChange={handleInputChange}
+                  disabled={!socialAuthSettings.enableLinkedinAuth}
+                  placeholder="https://example.com/auth/linkedin/callback"
+                />
+              </div>
+
+              <div className="flex items-center mt-2">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  size="sm" 
+                  className="text-muted-foreground p-0 h-auto space-x-1 space-x-reverse"
+                  onClick={() => window.open('https://www.linkedin.com/developers/apps', '_blank')}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>فتح موقع مطوري LinkedIn</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={isSaving || saveSocialAuthSettingsMutation.isPending}
+              className="min-w-[120px]"
+            >
+              {(isSaving || saveSocialAuthSettingsMutation.isPending) ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                <>
+                  <Save className="ml-2 h-4 w-4" />
+                  حفظ الإعدادات
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

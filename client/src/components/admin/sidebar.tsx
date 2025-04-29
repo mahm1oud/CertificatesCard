@@ -99,8 +99,19 @@ export default function AdminSidebar({ className }: AdminSidebarProps) {
     },
     {
       title: t('admin.menu.settings'),
-      href: '/admin/settings',
-      icon: <Settings className="h-4 w-4" />
+      icon: <Settings className="h-4 w-4" />,
+      children: [
+        {
+          title: "الإعدادات العامة",
+          href: '/admin/settings',
+          icon: <Settings className="h-4 w-4" />
+        },
+        {
+          title: "إعدادات العرض",
+          href: '/admin/display-settings',
+          icon: <LayoutGrid className="h-4 w-4" />
+        }
+      ]
     }
   ];
 

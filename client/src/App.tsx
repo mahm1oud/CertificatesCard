@@ -29,6 +29,9 @@ const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminCards = lazy(() => import("@/pages/admin/cards"));
 const AdminCertificates = lazy(() => import("@/pages/admin/certificates"));
 const AdminSettings = lazy(() => import("@/pages/admin/settings"));
+const AdminAuthSettings = lazy(() => import("@/pages/admin/settings/auth-page"));
+const AdminSocialAuth = lazy(() => import("@/pages/admin/social-auth-settings"));
+const AdminDisplaySettings = lazy(() => import("@/pages/admin/display-settings"));
 const UserDashboard = lazy(() => import("@/pages/user/dashboard"));
 const UserCards = lazy(() => import("@/pages/user/cards"));
 const UserCertificates = lazy(() => import("@/pages/user/certificates"));
@@ -124,6 +127,9 @@ function Router() {
             <ProtectedRoute path="/admin/cards" component={AdminCards} adminOnly />
             <ProtectedRoute path="/admin/certificates" component={AdminCertificates} adminOnly />
             <ProtectedRoute path="/admin/settings" component={AdminSettings} adminOnly />
+            <ProtectedRoute path="/admin/display-settings" component={AdminDisplaySettings} adminOnly />
+            <ProtectedRoute path="/admin/settings/auth" component={AdminAuthSettings} adminOnly />
+            <ProtectedRoute path="/admin/social-auth-settings" component={AdminSocialAuth} adminOnly />
             
             {/* 404 route */}
             <Route component={NotFound} />
