@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, json, date, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -299,12 +299,18 @@ export type CertificateBatchItem = typeof certificateBatchItems.$inferSelect;
 
 // Settings schema - إعدادات النظام
 export const settings = pgTable("settings", {
-  key: text("key").primaryKey(),
+  id: serial("id").primaryKey(),
+  key: text("key").notNull(),
   value: json("value").notNull(),
   category: text("category").default("general").notNull(),
   description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: integer("updated_by").references(() => users.id),
+}, (table) => {
+  return {
+    categoryKeyIdx: uniqueIndex("category_key_idx").on(table.category, table.key),
+  };
 });
 
 export const insertSettingSchema = createInsertSchema(settings).pick({

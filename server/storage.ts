@@ -162,6 +162,13 @@ export interface IStorage {
   createUserSignature(signature: InsertUserSignature): Promise<UserSignature>;
   updateUserSignature(id: number, data: Partial<InsertUserSignature>): Promise<UserSignature | undefined>;
   deleteUserSignature(id: number): Promise<boolean>;
+  
+  // Settings methods - إعدادات النظام
+  getSettings(category: string): Promise<any>;
+  getSettingsByCategory(category: string): Promise<{key: string, value: any}[]>;
+  updateSettings(category: string, settings: any): Promise<boolean>;
+  getSetting(category: string, key: string): Promise<any>;
+  updateSetting(category: string, key: string, value: any): Promise<boolean>;
 }
 
 // Database storage implementation
@@ -1450,6 +1457,123 @@ export class DatabaseStorage implements IStorage {
       return result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting user signature:", error);
+      return false;
+    }
+  }
+  
+  // إعدادات النظام - System Settings
+  async getSettings(category: string): Promise<any> {
+    try {
+      const settings: Record<string, any> = {};
+      const settingsData = await this.getSettingsByCategory(category);
+      
+      if (settingsData && settingsData.length > 0) {
+        for (const setting of settingsData) {
+          if (setting.key && setting.value !== undefined) {
+            try {
+              // محاولة تحليل القيمة كـ JSON إذا كانت مخزنة كنص
+              if (typeof setting.value === 'string' && (
+                setting.value.startsWith('{') || 
+                setting.value.startsWith('[') ||
+                setting.value === 'true' || 
+                setting.value === 'false' || 
+                !isNaN(Number(setting.value))
+              )) {
+                settings[setting.key] = JSON.parse(setting.value);
+              } else {
+                settings[setting.key] = setting.value;
+              }
+            } catch (e) {
+              // إذا فشل التحليل، استخدم القيمة كما هي
+              settings[setting.key] = setting.value;
+            }
+          }
+        }
+      }
+      
+      return settings;
+    } catch (error) {
+      console.error(`Error retrieving settings for category ${category}:`, error);
+      return {};
+    }
+  }
+  
+  async getSettingsByCategory(category: string): Promise<{key: string, value: any}[]> {
+    try {
+      // استخدام جدول الإعدادات لاسترجاع جميع الإعدادات في فئة معينة
+      const query = `SELECT key, value FROM settings WHERE category = $1`;
+      const result = await db.execute(query, [category]);
+        
+      return result.rows.map((row: any) => ({
+        key: row.key,
+        value: row.value
+      }));
+    } catch (error) {
+      console.error(`Error retrieving settings for category ${category}:`, error);
+      return [];
+    }
+  }
+  
+  async updateSettings(category: string, data: any): Promise<boolean> {
+    try {
+      // تحديث أو إضافة كل إعداد
+      for (const [key, value] of Object.entries(data)) {
+        await this.updateSetting(category, key, value);
+      }
+      return true;
+    } catch (error) {
+      console.error(`Error updating settings for category ${category}:`, error);
+      return false;
+    }
+  }
+  
+  async getSetting(category: string, key: string): Promise<any> {
+    try {
+      const query = `SELECT value FROM settings WHERE category = $1 AND key = $2`;
+      const result = await db.execute(query, [category, key]);
+      
+      if (result.rows.length === 0) return null;
+      const value = result.rows[0].value;
+      
+      // محاولة تحليل القيمة كـ JSON إذا كانت مخزنة كنص
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value);
+        } catch (e) {
+          // إذا فشل التحليل، أعد القيمة كما هي
+          return value;
+        }
+      }
+      
+      return value;
+    } catch (error) {
+      console.error(`Error retrieving setting ${category}.${key}:`, error);
+      return null;
+    }
+  }
+  
+  async updateSetting(category: string, key: string, value: any): Promise<boolean> {
+    try {
+      // تحويل القيمة إلى JSON إذا كانت كائن أو مصفوفة
+      const valueToStore = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      
+      // البحث عن الإعداد الحالي
+      const checkQuery = `SELECT key FROM settings WHERE category = $1 AND key = $2`;
+      const checkResult = await db.execute(checkQuery, [category, key]);
+      
+      if (checkResult.rows.length > 0) {
+        // تحديث إذا كان موجودًا
+        const updateQuery = `UPDATE settings SET value = $1, updated_at = NOW() WHERE category = $2 AND key = $3`;
+        await db.execute(updateQuery, [valueToStore, category, key]);
+      } else {
+        // إضافة إذا لم يكن موجودًا
+        const insertQuery = `INSERT INTO settings (category, key, value, updated_at) VALUES ($1, $2, $3, NOW())`;
+        await db.execute(insertQuery, [category, key, valueToStore]);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error updating setting ${category}.${key}:`, error);
       return false;
     }
   }
