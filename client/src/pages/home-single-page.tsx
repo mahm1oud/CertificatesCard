@@ -22,7 +22,9 @@ import {
   Share2,
   RefreshCw,
   X,
-  Check
+  Check,
+  FileImage,
+  Eye
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -107,7 +109,7 @@ export default function HomePageSinglePage() {
   
   // إضافة mutation للتنزيل بجودة محددة
   const downloadCardMutation = useMutation({
-    mutationFn: async (quality: string) => {
+    mutationFn: async (qualityOption: string) => {
       return apiRequest(
         'POST',
         '/api/cards/generate', 
@@ -115,21 +117,21 @@ export default function HomePageSinglePage() {
           templateId: selectedTemplate.id,
           category: selectedTemplate.category?.slug || "other",
           formData,
-          quality,
+          quality: qualityOption,
           isPreview: false
         }
       );
     },
-    onSuccess: (data) => {
+    onSuccess: (data, qualityOption) => {
       if (data && data.imageUrl) {
-        const fileName = `بطاقة-${selectedTemplate?.title || 'مخصصة'}-${quality}.png`;
+        const fileName = `بطاقة-${selectedTemplate?.title || 'مخصصة'}-${qualityOption}.png`;
         downloadImage(data.imageUrl, fileName);
         
         toast({
           title: "تم التنزيل بنجاح",
-          description: `تم تنزيل البطاقة بجودة ${quality === 'high' ? 'عالية' : 
-            quality === 'medium' ? 'متوسطة' : 
-            quality === 'low' ? 'منخفضة' : 'ممتازة'}`
+          description: `تم تنزيل البطاقة بجودة ${qualityOption === 'high' ? 'عالية' : 
+            qualityOption === 'medium' ? 'متوسطة' : 
+            qualityOption === 'low' ? 'منخفضة' : 'ممتازة'}`
         });
       }
     },
@@ -420,6 +422,9 @@ export default function HomePageSinglePage() {
     if (showQualitySelector) {
       downloadCardMutation.mutate(selectedQuality);
     } else {
+      // استخدام الجودة العالية افتراضيًا عند عدم اختيار محدد الجودة
+      downloadCardMutation.mutate('high');
+      
       // إظهار منتقي الجودة إذا تم الضغط على زر التنزيل للمرة الأولى
       setShowQualitySelector(true);
     }
@@ -794,7 +799,7 @@ export default function HomePageSinglePage() {
                       size="sm"
                       className="flex-1"
                     >
-                      <FileImage className="h-4 w-4 ml-2" />
+                      <Eye className="h-4 w-4 ml-2" />
                       عرض
                     </Button>
                     
