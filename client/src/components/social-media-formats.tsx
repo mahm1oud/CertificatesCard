@@ -4,9 +4,11 @@ import { useTranslation } from '@/lib/i18n';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest } from '@/lib/queryClient';
-import { ImageIcon, InstagramIcon, TwitterIcon, FacebookIcon } from 'lucide-react';
+import { ImageIcon, InstagramIcon, TwitterIcon, FacebookIcon, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
 
 // Define interface for social media format
 export interface SocialMediaFormat {
@@ -22,6 +24,7 @@ interface SocialMediaFormatsProps {
   selectedFormat?: string;
   cardImageUrl?: string;
   onGenerateImage?: () => void;
+  templateId?: string | number; // معرف القالب إذا كان متاحًا للتعديل
 }
 
 // Social Media Format Selection Component
@@ -29,9 +32,11 @@ export const SocialMediaFormats: React.FC<SocialMediaFormatsProps> = ({
   onFormatSelect,
   selectedFormat,
   cardImageUrl,
-  onGenerateImage
+  onGenerateImage,
+  templateId
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>(selectedFormat || 'instagram');
   
   // Fetch social media format settings from public API

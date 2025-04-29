@@ -410,6 +410,17 @@ function TemplatesTable({
                               <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-500">جديد</span>
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuItem asChild className="text-blue-600">
+                            <Link href={`/social-template-editor/${template.id}`}>
+                              <svg width="16" height="16" className="ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 2H6a4 4 0 0 0-4 4v12a4 4 0 0 0 4 4h12a4 4 0 0 0 4-4V6a4 4 0 0 0-4-4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M10 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM16 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM17 15a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="m8.5 13.5 5-3M12.5 11.5l2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              <span className="flex-1">محرر الشبكات الاجتماعية</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-500">ميزة متقدمة</span>
+                            </Link>
+                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-destructive focus:text-destructive"
                             onClick={() => handleDeleteTemplate(template.id)}

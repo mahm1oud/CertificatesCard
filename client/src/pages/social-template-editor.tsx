@@ -54,9 +54,12 @@ interface TemplateData {
 
 interface SocialTemplateEditorProps {
   templateId?: string;
+  params?: { templateId: string };
 }
 
-const SocialTemplateEditor: React.FC<SocialTemplateEditorProps> = ({ templateId }) => {
+const SocialTemplateEditor: React.FC<SocialTemplateEditorProps> = (props) => {
+  // دعم مباشر من الواجهة أو من wouter router params
+  const templateId = props.templateId || props.params?.templateId;
   const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('editor');
