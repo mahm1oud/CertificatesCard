@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,8 @@ import {
   Download,
   Share2,
   RefreshCw,
-  X
+  X,
+  Check
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
@@ -32,7 +33,8 @@ import EngagementForm from "@/components/forms/engagement-form";
 import GraduationForm from "@/components/forms/graduation-form";
 import EidForm from "@/components/forms/eid-form";
 import RamadanForm from "@/components/forms/ramadan-form";
-import { getCategoryName } from "@/lib/utils";
+import { getCategoryName, downloadImage } from "@/lib/utils";
+import ShareOptions from "@/components/share-options";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +44,13 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function HomePageSinglePage() {
   const { user } = useAuth();
@@ -57,6 +66,10 @@ export default function HomePageSinglePage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [cardId, setCardId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // المتغيرات الجديدة لخيارات التنزيل والمشاركة المتقدمة
+  const [showQualitySelector, setShowQualitySelector] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState('high');
   
   // Parse location search params
   useEffect(() => {
@@ -90,6 +103,39 @@ export default function HomePageSinglePage() {
     queryKey: [`/api/template-fields/${selectedTemplate?.id}`],
     queryFn: getQueryFn(),
     enabled: !!selectedTemplate?.id,
+  });
+  
+  // إضافة mutation للتنزيل بجودة محددة
+  const downloadCardMutation = useMutation({
+    mutationFn: async (quality: string) => {
+      return apiRequest(
+        'POST',
+        '/api/cards/generate', 
+        {
+          templateId: selectedTemplate.id,
+          category: selectedTemplate.category?.slug || "other",
+          formData,
+          quality,
+          isPreview: false
+        }
+      );
+    },
+    onSuccess: (data) => {
+      if (data && data.imageUrl) {
+        const fileName = `بطاقة-${selectedTemplate?.title || 'مخصصة'}-${quality}.png`;
+        downloadImage(data.imageUrl, fileName);
+        
+        toast({
+          title: "تم التنزيل بنجاح",
+          description: `تم تنزيل البطاقة بجودة ${quality === 'high' ? 'عالية' : 
+            quality === 'medium' ? 'متوسطة' : 
+            quality === 'low' ? 'منخفضة' : 'ممتازة'}`
+        });
+      }
+    },
+    onError: () => {
+      handleFallbackDownload();
+    }
   });
   
   // Normalize allTemplates structure since API returns different format based on endpoint
@@ -335,6 +381,47 @@ export default function HomePageSinglePage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // دالة للتعامل مع حالات الفشل في التنزيل - استخدام النسخة المخزنة مباشرةً
+  const handleFallbackDownload = () => {
+    if (previewImage) {
+      try {
+        // استخدام الصورة المولدة مسبقاً للتنزيل
+        const fileName = `بطاقة-${selectedTemplate?.title || 'مخصصة'}.png`;
+        downloadImage(previewImage, fileName);
+        
+        toast({
+          title: "تم التنزيل",
+          description: "تم تنزيل النسخة المتاحة من البطاقة"
+        });
+      } catch (error) {
+        console.error("Fallback download error:", error);
+        toast({
+          title: "خطأ",
+          description: "تعذر تنزيل البطاقة، يرجى المحاولة مرة أخرى",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "خطأ",
+        description: "لا توجد صورة متاحة للتنزيل",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // دالة تنزيل البطاقة بالجودة المحددة
+  const handleDownloadCard = () => {
+    if (!cardId || !selectedTemplate?.id) return;
+    
+    if (showQualitySelector) {
+      downloadCardMutation.mutate(selectedQuality);
+    } else {
+      // إظهار منتقي الجودة إذا تم الضغط على زر التنزيل للمرة الأولى
+      setShowQualitySelector(true);
     }
   };
   
@@ -700,24 +787,86 @@ export default function HomePageSinglePage() {
               {/* أزرار التنزيل والمشاركة */}
               {previewImage && (
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    className="w-full" 
-                    onClick={handleDownload}
-                    disabled={isLoading}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    تنزيل البطاقة
-                  </Button>
+                  <div className="flex gap-2 justify-between items-center">
+                    <Button 
+                      variant="default" 
+                      onClick={() => window.open(previewImage, "_blank")}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <FileImage className="h-4 w-4 ml-2" />
+                      عرض
+                    </Button>
+                    
+                    {showQualitySelector ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <Select value={selectedQuality} onValueChange={(value: any) => setSelectedQuality(value)}>
+                          <SelectTrigger className="h-9 w-28 text-xs">
+                            <SelectValue placeholder="اختر الجودة" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">منخفضة</SelectItem>
+                            <SelectItem value="medium">متوسطة</SelectItem>
+                            <SelectItem value="high">عالية</SelectItem>
+                            <SelectItem value="download">ممتازة</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Button 
+                          variant="secondary" 
+                          onClick={handleDownloadCard}
+                          disabled={downloadCardMutation.isPending}
+                          size="sm"
+                        >
+                          {downloadCardMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                          تنزيل
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        onClick={handleDownloadCard}
+                        className="flex items-center gap-1 flex-1"
+                        disabled={!previewImage && !cardId}
+                        size="sm"
+                      >
+                        <Download className="h-4 w-4" />
+                        تنزيل
+                      </Button>
+                    )}
+                    
+                    <ShareOptions 
+                      cardId={cardId || ""} 
+                      imageUrl={previewImage || ""} 
+                      size="sm"
+                    />
+                  </div>
                   
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={handleShare}
-                    disabled={isLoading}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    مشاركة البطاقة
-                  </Button>
+                  {user ? (
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      disabled={isLoading}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      حفظ إلى حسابي
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      disabled={isLoading}
+                      asChild
+                    >
+                      <Link href="/auth">
+                        تسجيل الدخول لحفظ البطاقة
+                      </Link>
+                    </Button>
+                  )}
                   
                   <Button 
                     variant="ghost" 
