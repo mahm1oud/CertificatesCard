@@ -518,57 +518,86 @@ export class DatabaseStorage implements IStorage {
   // User Preferences methods
   async getUserPreferences(userId: number): Promise<{layout?: string; theme?: string} | undefined> {
     try {
-      // Since user preferences are stored as settings, we'll get them from the settings table
-      // Using a specific category for user preferences with key pattern 'user_<userId>_<preference>'
-      const userSettings = await db.query.settings.findMany({
-        where: and(
-          eq(settings.category, 'user_preferences'),
-          or(
-            eq(settings.key, `user_${userId}_layout`),
-            eq(settings.key, `user_${userId}_theme`)
-          )
-        )
-      });
+      // Since user preferences are stored as settings, we need to use direct SQL queries
+      // because the settings table structure doesn't match our schema definition
+      const query = `
+        SELECT key, value
+        FROM settings
+        WHERE category = 'user_preferences'
+        AND (key = $1 OR key = $2)
+      `;
       
-      if (!userSettings || userSettings.length === 0) {
-        return undefined;
+      const result = await pool.query(query, [`user_${userId}_layout`, `user_${userId}_theme`]);
+      
+      if (!result.rows || result.rows.length === 0) {
+        return { layout: 'fluid', theme: 'system' }; // Default values
       }
       
       // Create an object with the user preferences
-      const preferences: {layout?: string; theme?: string} = {};
+      const preferences: {layout?: string; theme?: string} = {
+        layout: 'fluid',  // Default
+        theme: 'system'   // Default
+      };
       
-      for (const setting of userSettings) {
-        if (setting.key === `user_${userId}_layout`) {
-          preferences.layout = String(setting.value);
-        } else if (setting.key === `user_${userId}_theme`) {
-          preferences.theme = String(setting.value);
+      for (const row of result.rows) {
+        if (row.key === `user_${userId}_layout`) {
+          preferences.layout = JSON.parse(row.value);
+        } else if (row.key === `user_${userId}_theme`) {
+          preferences.theme = JSON.parse(row.value);
         }
       }
       
       return preferences;
     } catch (error) {
       console.error('Error getting user preferences:', error);
-      return undefined;
+      return { layout: 'fluid', theme: 'system' }; // Return defaults on error
     }
   }
 
   async saveUserPreferences(userId: number, preferences: {layout?: string; theme?: string}): Promise<boolean> {
     try {
-      // For each preference, create or update a setting
+      // For each preference, create or update a setting using direct SQL
+      // since the settings table structure doesn't match our schema definition
       if (preferences.layout) {
-        await this.createOrUpdateSetting({
-          key: `user_${userId}_layout`,
-          value: preferences.layout,
-          category: 'user_preferences'
-        });
+        const layoutQuery = `
+          INSERT INTO settings (key, value, category, description, updated_at)
+          VALUES ($1, $2, $3, $4, NOW())
+          ON CONFLICT (key) 
+          DO UPDATE SET 
+            value = $2,
+            updated_at = NOW()
+        `;
+        
+        await pool.query(
+          layoutQuery, 
+          [
+            `user_${userId}_layout`, 
+            JSON.stringify(preferences.layout),
+            'user_preferences',
+            'User layout preference'
+          ]
+        );
       }
       
       if (preferences.theme) {
-        await this.createOrUpdateSetting({
-          key: `user_${userId}_theme`,
-          value: preferences.theme,
-          category: 'user_preferences'
-        });
+        const themeQuery = `
+          INSERT INTO settings (key, value, category, description, updated_at)
+          VALUES ($1, $2, $3, $4, NOW())
+          ON CONFLICT (key) 
+          DO UPDATE SET 
+            value = $2,
+            updated_at = NOW()
+        `;
+        
+        await pool.query(
+          themeQuery, 
+          [
+            `user_${userId}_theme`,
+            JSON.stringify(preferences.theme),
+            'user_preferences',
+            'User theme preference'
+          ]
+        );
       }
       
       return true;
