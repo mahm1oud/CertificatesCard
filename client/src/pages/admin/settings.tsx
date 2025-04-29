@@ -658,6 +658,60 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleDisplaySubmit} className="space-y-6">
+                {/* نمط عرض التطبيق */}
+                <div className="space-y-3">
+                  <div className="flex flex-col space-y-1.5">
+                    <h3 className="text-lg font-semibold">نمط عرض التطبيق</h3>
+                    <p className="text-sm text-muted-foreground">اختر نمط عرض التطبيق للمستخدمين</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded-lg p-4 flex flex-col space-y-4 items-center">
+                      <div className="flex items-center justify-center w-full h-32 bg-muted rounded-md">
+                        <LayoutGrid className="h-16 w-16 text-muted-foreground opacity-50" />
+                      </div>
+                      <h4 className="font-medium">النمط التقليدي (متعدد الصفحات)</h4>
+                      <p className="text-sm text-muted-foreground text-center">
+                        يتم تقسيم التطبيق إلى صفحات منفصلة
+                      </p>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Switch
+                          id="displayMode-multi"
+                          checked={displaySettings.displayMode === 'multi'}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setDisplaySettings(prev => ({ ...prev, displayMode: 'multi' }));
+                            }
+                          }}
+                        />
+                        <Label htmlFor="displayMode-multi">تفعيل</Label>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-lg p-4 flex flex-col space-y-4 items-center">
+                      <div className="flex items-center justify-center w-full h-32 bg-muted rounded-md">
+                        <Layout className="h-16 w-16 text-muted-foreground opacity-50" />
+                      </div>
+                      <h4 className="font-medium">النمط الموحد (صفحة واحدة)</h4>
+                      <p className="text-sm text-muted-foreground text-center">
+                        يتم عرض كل شيء في صفحة واحدة
+                      </p>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Switch
+                          id="displayMode-single"
+                          checked={displaySettings.displayMode === 'single'}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setDisplaySettings(prev => ({ ...prev, displayMode: 'single' }));
+                            }
+                          }}
+                        />
+                        <Label htmlFor="displayMode-single">تفعيل</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* طريقة عرض القوالب */}
                 <div className="space-y-3">
                   <div className="flex flex-col space-y-1.5">
