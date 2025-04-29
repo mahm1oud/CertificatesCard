@@ -2436,8 +2436,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get available social media formats
   app.get("/api/social-formats", async (req, res) => {
     try {
-      const { getSocialFormats } = await import('./lib/social-image-generator');
-      const formats = await getSocialFormats();
+      // القيم المدعومة لتنسيقات الشبكات الاجتماعية
+      const formats = {
+        instagram: { 
+          width: 1080, 
+          height: 1080, 
+          ratio: '1:1', 
+          description: 'Instagram (Square)'
+        },
+        'instagram-portrait': { 
+          width: 1080, 
+          height: 1350, 
+          ratio: '4:5', 
+          description: 'Instagram (Portrait)'
+        },
+        'instagram-landscape': { 
+          width: 1080, 
+          height: 566, 
+          ratio: '1.91:1', 
+          description: 'Instagram (Landscape)'
+        },
+        'instagram-story': { 
+          width: 1080, 
+          height: 1920, 
+          ratio: '9:16', 
+          description: 'Instagram Story'
+        },
+        facebook: { 
+          width: 1200, 
+          height: 630, 
+          ratio: '1.91:1', 
+          description: 'Facebook'
+        },
+        twitter: { 
+          width: 1200, 
+          height: 675, 
+          ratio: '16:9', 
+          description: 'Twitter'
+        },
+        linkedin: { 
+          width: 1200, 
+          height: 627, 
+          ratio: '1.91:1', 
+          description: 'LinkedIn'
+        },
+        whatsapp: { 
+          width: 800, 
+          height: 800, 
+          ratio: '1:1', 
+          description: 'WhatsApp'
+        }
+      };
+      
       res.json({ formats });
     } catch (error) {
       console.error("Error fetching social formats:", error);
