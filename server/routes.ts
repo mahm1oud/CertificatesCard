@@ -2017,6 +2017,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User preferences API (public/authenticated)
+  app.get('/api/user/preferences', async (req, res) => {
+    try {
+      // Default preferences
+      const preferences = {
+        layout: 'fluid',
+        theme: 'system'
+      };
+
+      // If user is authenticated, try to get their saved preferences
+      if (req.user) {
+        try {
+          const userPreferences = await storage.getUserPreferences(req.user.id);
+          if (userPreferences) {
+            // Override defaults with user's saved preferences
+            Object.assign(preferences, userPreferences);
+          }
+        } catch (error) {
+          console.error('Error fetching user preferences:', error);
+        }
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error in preferences API:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء تحميل تفضيلات المستخدم' });
+    }
+  });
+
+  // Save user preferences (authenticated only)
+  app.post('/api/user/preferences', isAuthenticated, async (req, res) => {
+    try {
+      const { layout, theme } = req.body;
+      
+      // Validate inputs
+      if (layout && !['boxed', 'fluid'].includes(layout)) {
+        return res.status(400).json({ message: 'قيمة التخطيط غير صالحة' });
+      }
+      
+      if (theme && !['light', 'dark', 'system'].includes(theme)) {
+        return res.status(400).json({ message: 'قيمة السمة غير صالحة' });
+      }
+      
+      // Save preferences
+      await storage.saveUserPreferences(req.user.id, { 
+        layout: layout || 'fluid',
+        theme: theme || 'system'
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error saving user preferences:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء حفظ تفضيلات المستخدم' });
+    }
+  });
+
   // Get display settings (public API - frontend access)
   app.get('/api/display', async (req, res) => {
     try {

@@ -61,6 +61,10 @@ export interface IStorage {
   getAllUsers(options?: { limit?: number; offset?: number; search?: string }): Promise<{ users: User[]; total: number }>;
   deleteUser(id: number): Promise<boolean>;
   
+  // User Preferences methods
+  getUserPreferences(userId: number): Promise<{layout?: string; theme?: string} | undefined>;
+  saveUserPreferences(userId: number, preferences: {layout?: string; theme?: string}): Promise<boolean>;
+  
   // Auth Provider Settings
   getAuthSettings(provider: string): Promise<AuthProviderSettings | undefined>;
   getAllAuthSettings(): Promise<AuthProviderSettings[]>;
@@ -509,6 +513,69 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
     return !!result;
+  }
+
+  // User Preferences methods
+  async getUserPreferences(userId: number): Promise<{layout?: string; theme?: string} | undefined> {
+    try {
+      // Since user preferences are stored as settings, we'll get them from the settings table
+      // Using a specific category for user preferences with key pattern 'user_<userId>_<preference>'
+      const userSettings = await db.query.settings.findMany({
+        where: and(
+          eq(settings.category, 'user_preferences'),
+          or(
+            eq(settings.key, `user_${userId}_layout`),
+            eq(settings.key, `user_${userId}_theme`)
+          )
+        )
+      });
+      
+      if (!userSettings || userSettings.length === 0) {
+        return undefined;
+      }
+      
+      // Create an object with the user preferences
+      const preferences: {layout?: string; theme?: string} = {};
+      
+      for (const setting of userSettings) {
+        if (setting.key === `user_${userId}_layout`) {
+          preferences.layout = String(setting.value);
+        } else if (setting.key === `user_${userId}_theme`) {
+          preferences.theme = String(setting.value);
+        }
+      }
+      
+      return preferences;
+    } catch (error) {
+      console.error('Error getting user preferences:', error);
+      return undefined;
+    }
+  }
+
+  async saveUserPreferences(userId: number, preferences: {layout?: string; theme?: string}): Promise<boolean> {
+    try {
+      // For each preference, create or update a setting
+      if (preferences.layout) {
+        await this.createOrUpdateSetting({
+          key: `user_${userId}_layout`,
+          value: preferences.layout,
+          category: 'user_preferences'
+        });
+      }
+      
+      if (preferences.theme) {
+        await this.createOrUpdateSetting({
+          key: `user_${userId}_theme`,
+          value: preferences.theme,
+          category: 'user_preferences'
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving user preferences:', error);
+      return false;
+    }
   }
 
   // Auth Provider Settings methods

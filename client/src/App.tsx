@@ -14,6 +14,7 @@ import Footer from "@/components/footer";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { I18nProvider, useTranslation } from "@/lib/i18n";
+import { ThemeProvider } from "next-themes";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -54,6 +55,10 @@ function Router() {
   const { dir } = useTranslation();
   const [displaySettings, setDisplaySettings] = useState<any>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [userPreferences, setUserPreferences] = useState<{ layout?: 'boxed' | 'fluid', theme?: 'light' | 'dark' | 'system' }>({
+    layout: 'fluid',
+    theme: 'system'
+  });
   
   // جلب إعدادات العرض
   useEffect(() => {
@@ -81,6 +86,27 @@ function Router() {
     fetchDisplaySettings();
   }, []);
   
+  // جلب تفضيلات المستخدم
+  useEffect(() => {
+    async function fetchUserPreferences() {
+      try {
+        const response = await fetch('/api/user/preferences');
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserPreferences({
+            layout: data.layout || 'fluid',
+            theme: data.theme || 'system'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user preferences:', error);
+      }
+    }
+    
+    fetchUserPreferences();
+  }, []);
+  
   // اختيار مكون الصفحة الرئيسية بناءً على إعدادات العرض
   const HomeComponent = displaySettings?.displayMode === 'single' 
     ? HomePageSinglePage
@@ -91,7 +117,7 @@ function Router() {
   }
   
   return (
-    <div dir={dir()} className="flex flex-col min-h-screen">
+    <div dir={dir()} className={`flex flex-col min-h-screen layout-${userPreferences.layout}`}>
       <Header />
       <main className="flex-grow">
         <Suspense fallback={<LazyLoadingFallback />}>
@@ -146,14 +172,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <I18nProvider>
-          <AuthProvider>
-            <Toaster />
-            <Router />
-          </AuthProvider>
-        </I18nProvider>
-      </TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <Toaster />
+              <Router />
+            </AuthProvider>
+          </I18nProvider>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
