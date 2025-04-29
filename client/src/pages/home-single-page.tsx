@@ -848,6 +848,7 @@ export default function HomePageSinglePage() {
                       cardId={cardId || ""} 
                       imageUrl={previewImage || ""} 
                       size="sm"
+                      templateId={selectedTemplate?.id}
                     />
                   </div>
                   
