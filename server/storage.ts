@@ -1501,8 +1501,8 @@ export class DatabaseStorage implements IStorage {
   async getSettingsByCategory(category: string): Promise<{key: string, value: any}[]> {
     try {
       // استخدام جدول الإعدادات لاسترجاع جميع الإعدادات في فئة معينة
-      const query = `SELECT key, value FROM settings WHERE category = $1`;
-      const result = await db.execute(query, [category]);
+      const query = `SELECT key, value FROM settings WHERE category = '${category}'`;
+      const result = await db.execute(query);
         
       return result.rows.map((row: any) => ({
         key: row.key,
@@ -1529,8 +1529,8 @@ export class DatabaseStorage implements IStorage {
   
   async getSetting(category: string, key: string): Promise<any> {
     try {
-      const query = `SELECT value FROM settings WHERE category = $1 AND key = $2`;
-      const result = await db.execute(query, [category, key]);
+      const query = `SELECT value FROM settings WHERE category = '${category}' AND key = '${key}'`;
+      const result = await db.execute(query);
       
       if (result.rows.length === 0) return null;
       const value = result.rows[0].value;
@@ -1558,17 +1558,17 @@ export class DatabaseStorage implements IStorage {
       const valueToStore = typeof value === 'object' ? JSON.stringify(value) : String(value);
       
       // البحث عن الإعداد الحالي
-      const checkQuery = `SELECT key FROM settings WHERE category = $1 AND key = $2`;
-      const checkResult = await db.execute(checkQuery, [category, key]);
+      const checkQuery = `SELECT key FROM settings WHERE category = '${category}' AND key = '${key}'`;
+      const checkResult = await db.execute(checkQuery);
       
       if (checkResult.rows.length > 0) {
         // تحديث إذا كان موجودًا
-        const updateQuery = `UPDATE settings SET value = $1, updated_at = NOW() WHERE category = $2 AND key = $3`;
-        await db.execute(updateQuery, [valueToStore, category, key]);
+        const updateQuery = `UPDATE settings SET value = '${valueToStore}', updated_at = NOW() WHERE category = '${category}' AND key = '${key}'`;
+        await db.execute(updateQuery);
       } else {
         // إضافة إذا لم يكن موجودًا
-        const insertQuery = `INSERT INTO settings (category, key, value, updated_at) VALUES ($1, $2, $3, NOW())`;
-        await db.execute(insertQuery, [category, key, valueToStore]);
+        const insertQuery = `INSERT INTO settings (category, key, value, updated_at) VALUES ('${category}', '${key}', '${valueToStore}', NOW())`;
+        await db.execute(insertQuery);
       }
       
       return true;
