@@ -34,10 +34,10 @@ export const SocialMediaFormats: React.FC<SocialMediaFormatsProps> = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<string>(selectedFormat || 'instagram');
   
-  // Fetch social media format settings
+  // Fetch social media format settings from public API
   const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/admin/settings/social-formats'],
-    queryFn: () => apiRequest('GET', '/api/admin/settings/social-formats'),
+    queryKey: ['/api/social-formats'],
+    queryFn: () => apiRequest('GET', '/api/social-formats'),
   });
   
   // Select the format when tab changes

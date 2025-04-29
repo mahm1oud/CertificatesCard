@@ -2123,6 +2123,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Public API for social formats - available to all users
+  app.get('/api/social-formats', async (req, res) => {
+    try {
+      // Import the social image generator module
+      const { DEFAULT_SOCIAL_FORMATS } = await import('./lib/social-image-generator');
+      
+      // Use the DEFAULT_SOCIAL_FORMATS from the module as a fallback
+      let formats = DEFAULT_SOCIAL_FORMATS;
+      
+      try {
+        // Try to get formats from database
+        const settingsArray = await storage.getSettingsByCategory('social-formats');
+        
+        // If formats exist in the database, use them
+        if (settingsArray && settingsArray.length > 0) {
+          formats = {};
+          
+          for (const setting of settingsArray) {
+            try {
+              if (setting.key && setting.value) {
+                formats[setting.key] = JSON.parse(String(setting.value));
+              }
+            } catch (parseError) {
+              console.error(`Error parsing format setting for ${setting.key}:`, parseError);
+            }
+          }
+        }
+      } catch (dbError) {
+        console.error('Error fetching social formats from database:', dbError);
+      }
+      
+      res.json({ formats });
+    } catch (error) {
+      console.error('Error fetching social formats:', error);
+      res.status(500).json({ message: 'Error fetching social formats' });
+    }
+  });
+  
   // Admin display settings update endpoint
   app.post('/api/admin/display-settings', isAuthenticated, isAdmin, async (req, res) => {
     try {
