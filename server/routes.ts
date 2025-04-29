@@ -2112,6 +2112,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Error fetching display settings' });
     }
   });
+  
+  // Admin display settings update endpoint
+  app.post('/api/admin/display-settings', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { displayMode, templateViewMode, enableSocialFormats, defaultSocialFormat } = req.body;
+      
+      // Validate inputs
+      if (displayMode && !['single', 'multi'].includes(displayMode)) {
+        return res.status(400).json({ message: 'قيمة وضع العرض غير صالحة' });
+      }
+      
+      if (templateViewMode && !['single-page', 'multi-page'].includes(templateViewMode)) {
+        return res.status(400).json({ message: 'قيمة وضع عرض القالب غير صالحة' });
+      }
+      
+      // Update each setting 
+      if (displayMode) {
+        await storage.createOrUpdateSetting({
+          key: 'displayMode',
+          value: displayMode,
+          category: 'display',
+          description: 'Display mode for the app (multi or single)'
+        });
+      }
+      
+      if (templateViewMode) {
+        await storage.createOrUpdateSetting({
+          key: 'templateViewMode',
+          value: templateViewMode,
+          category: 'display',
+          description: 'Template view mode (single-page or multi-page)'
+        });
+      }
+      
+      if (enableSocialFormats !== undefined) {
+        await storage.createOrUpdateSetting({
+          key: 'enableSocialFormats',
+          value: enableSocialFormats,
+          category: 'display',
+          description: 'Enable social media format options'
+        });
+      }
+      
+      if (defaultSocialFormat) {
+        await storage.createOrUpdateSetting({
+          key: 'defaultSocialFormat',
+          value: defaultSocialFormat,
+          category: 'display',
+          description: 'Default social media format'
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating display settings:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء تحديث إعدادات العرض' });
+    }
+  });
 
   // Serve uploaded card images and files
   app.use("/uploads", express.static(uploadsDir));
