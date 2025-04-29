@@ -223,6 +223,12 @@ export default function UserDashboardPage() {
                           الملف الشخصي
                         </Link>
                       </Button>
+                      <Button asChild variant="outline" className="w-full justify-start">
+                        <Link href="/user/preferences">
+                          <Settings className="h-4 w-4 ml-2" />
+                          تفضيلات المستخدم
+                        </Link>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

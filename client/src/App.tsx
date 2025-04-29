@@ -36,6 +36,7 @@ const UserDashboard = lazy(() => import("@/pages/user/dashboard"));
 const UserCards = lazy(() => import("@/pages/user/cards"));
 const UserCertificates = lazy(() => import("@/pages/user/certificates"));
 const UserProfile = lazy(() => import("@/pages/user/profile"));
+const UserPreferences = lazy(() => import("@/pages/user/preferences"));
 const CertificateVerify = lazy(() => import("@/pages/certificate-verify"));
 const CertificateForm = lazy(() => import("@/pages/certificate-form"));
 const CertificatePreview = lazy(() => import("@/pages/certificate-preview"));
@@ -114,6 +115,7 @@ function Router() {
             <ProtectedRoute path="/user/cards" component={UserCards} />
             <ProtectedRoute path="/user/certificates" component={UserCertificates} />
             <ProtectedRoute path="/user/profile" component={UserProfile} />
+            <ProtectedRoute path="/user/preferences" component={UserPreferences} />
             
             {/* Admin routes (protected, admin only) */}
             <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} adminOnly />
