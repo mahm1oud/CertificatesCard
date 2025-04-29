@@ -2046,8 +2046,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save user preferences (authenticated only)
-  app.post('/api/user/preferences', isAuthenticated, async (req, res) => {
+  // Save user preferences (public/authenticated)
+  app.post('/api/user/preferences', async (req, res) => {
     try {
       const { layout, theme } = req.body;
       
@@ -2060,11 +2060,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'قيمة السمة غير صالحة' });
       }
       
-      // Save preferences
-      await storage.saveUserPreferences(req.user.id, { 
+      // Preferences to save
+      const preferences = { 
         layout: layout || 'boxed',
         theme: theme || 'light'
-      });
+      };
+      
+      // If user is authenticated, save to database
+      if (req.user) {
+        await storage.saveUserPreferences(req.user.id, preferences);
+      }
+      
+      // Always save to session for both guests and authenticated users
+      if (req.session) {
+        req.session.userPreferences = preferences;
+      }
       
       res.json({ success: true });
     } catch (error) {

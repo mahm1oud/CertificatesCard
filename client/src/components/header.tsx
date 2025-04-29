@@ -225,6 +225,19 @@ export default function Header() {
                       <div className="px-2 py-1.5">
                         <p className="text-xs text-muted-foreground">الإعدادات</p>
                       </div>
+                      <SheetClose asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start"
+                          asChild
+                        >
+                          <Link href="/user/preferences">
+                            <Settings className="ml-2 h-4 w-4" />
+                            إعدادات العرض
+                          </Link>
+                        </Button>
+                      </SheetClose>
                       <div className="px-4 py-2">
                         <LanguageSwitcher />
                       </div>
@@ -388,6 +401,12 @@ export default function Header() {
                 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>الإعدادات</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <Link href="/user/preferences">
+                    <Settings className="ml-2 h-4 w-4" />
+                    إعدادات العرض
+                  </Link>
+                </DropdownMenuItem>
                 <div className="p-2">
                   <LanguageSwitcher />
                 </div>
@@ -403,7 +422,26 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <div className="flex space-x-2 space-x-reverse items-center">
-              <LanguageSwitcher />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>الإعدادات</DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/user/preferences">
+                      <Settings className="ml-2 h-4 w-4" />
+                      إعدادات العرض
+                    </Link>
+                  </DropdownMenuItem>
+                  <div className="p-2">
+                    <LanguageSwitcher />
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Button size="sm" variant="outline" asChild>
                 <Link href="/auth">
                   تسجيل الدخول
