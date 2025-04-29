@@ -185,6 +185,59 @@ export default function AdminDashboardPage() {
           ) : (
             <>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {/* إعدادات سريعة */}
+                <Card className="lg:col-span-4">
+                  <CardHeader className="pb-3">
+                    <CardTitle>إعدادات سريعة</CardTitle>
+                    <CardDescription>تحكم سريع في الإعدادات الأكثر استخداماً</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {/* طريقة عرض التطبيق */}
+                      <div className="space-y-3">
+                        <h3 className="text-base font-medium">طريقة عرض التطبيق</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <div className="text-sm">نمط العرض الموحد (صفحة واحدة)</div>
+                            <div className="text-xs text-muted-foreground">عرض كل شيء في صفحة واحدة</div>
+                          </div>
+                          <Switch
+                            checked={displaySettings.displayMode === 'single'}
+                            onCheckedChange={(checked) => handleDisplayModeChange(checked)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* طريقة عرض القوالب */}
+                      <div className="space-y-3">
+                        <h3 className="text-base font-medium">طريقة عرض القوالب</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <div className="text-sm">القوالب في صفحة واحدة</div>
+                            <div className="text-xs text-muted-foreground">عرض القوالب في صفحة واحدة</div>
+                          </div>
+                          <Switch
+                            checked={displaySettings.templateViewMode === 'single-page'}
+                            onCheckedChange={(checked) => handleTemplateViewModeChange(checked)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* الإعدادات المتقدمة */}
+                      <div className="space-y-3">
+                        <h3 className="text-base font-medium">إعدادات النظام</h3>
+                        <Button asChild variant="outline" className="w-full justify-between">
+                          <Link href="/admin/display-settings">
+                            <span>إدارة إعدادات العرض</span>
+                            <Settings className="h-4 w-4 ml-2" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* إحصائيات */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">المستخدمون</CardTitle>
