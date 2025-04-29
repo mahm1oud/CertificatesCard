@@ -110,6 +110,16 @@ export default function AdminSidebar({ className }: AdminSidebarProps) {
           title: "إعدادات العرض",
           href: '/admin/display-settings',
           icon: <LayoutGrid className="h-4 w-4" />
+        },
+        {
+          title: "إعدادات المصادقة",
+          href: '/admin/settings/auth',
+          icon: <Shield className="h-4 w-4" />
+        },
+        {
+          title: "إعدادات مواقع التواصل",
+          href: '/admin/social-auth-settings',
+          icon: <Globe className="h-4 w-4" />
         }
       ]
     }
