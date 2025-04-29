@@ -568,6 +568,7 @@ const CardPreview = () => {
                 cardId={card.id || card.publicId} 
                 imageUrl={previewUrl || card.imageUrl} 
                 size="sm"
+                templateId={card.templateId}
               />
             </div>
             

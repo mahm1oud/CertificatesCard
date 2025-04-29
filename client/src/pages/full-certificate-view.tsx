@@ -359,8 +359,8 @@ export default function FullCertificateView() {
           </DialogHeader>
           <ShareOptions 
             cardId={certificate.publicId} 
-            cardType="certificate" 
-            imageUrl={certificate.imageUrl} 
+            imageUrl={certificate.imageUrl}
+            templateId={certificate.templateId}
           />
         </DialogContent>
       </Dialog>

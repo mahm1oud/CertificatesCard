@@ -444,8 +444,8 @@ export default function FullCardView() {
           </DialogHeader>
           <ShareOptions 
             cardId={card.publicId} 
-            cardType="card" 
-            imageUrl={card.imageUrl} 
+            imageUrl={card.imageUrl}
+            templateId={card.template?.id}
           />
         </DialogContent>
       </Dialog>
