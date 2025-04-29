@@ -2022,8 +2022,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Default preferences
       const preferences = {
-        layout: 'fluid',
-        theme: 'system'
+        layout: 'boxed',
+        theme: 'light'
       };
 
       // If user is authenticated, try to get their saved preferences
@@ -2062,8 +2062,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save preferences
       await storage.saveUserPreferences(req.user.id, { 
-        layout: layout || 'fluid',
-        theme: theme || 'system'
+        layout: layout || 'boxed',
+        theme: theme || 'light'
       });
       
       res.json({ success: true });

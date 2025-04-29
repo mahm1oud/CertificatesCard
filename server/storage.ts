@@ -540,10 +540,25 @@ export class DatabaseStorage implements IStorage {
       };
       
       for (const row of result.rows) {
-        if (row.key === `user_${userId}_layout`) {
-          preferences.layout = JSON.parse(row.value);
-        } else if (row.key === `user_${userId}_theme`) {
-          preferences.theme = JSON.parse(row.value);
+        try {
+          if (row.key === `user_${userId}_layout`) {
+            // Check if value is already a string or try to parse it as JSON
+            preferences.layout = typeof row.value === 'string' ? 
+              (row.value.startsWith('"') ? JSON.parse(row.value) : row.value) : 
+              row.value;
+          } else if (row.key === `user_${userId}_theme`) {
+            preferences.theme = typeof row.value === 'string' ? 
+              (row.value.startsWith('"') ? JSON.parse(row.value) : row.value) : 
+              row.value;
+          }
+        } catch (error) {
+          console.error(`Error parsing preference value for ${row.key}:`, error);
+          // If parsing fails, use the raw value as a fallback
+          if (row.key === `user_${userId}_layout`) {
+            preferences.layout = row.value;
+          } else if (row.key === `user_${userId}_theme`) {
+            preferences.theme = row.value;
+          }
         }
       }
       
