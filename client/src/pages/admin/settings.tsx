@@ -29,9 +29,10 @@ import {
   Clock,
   Shield
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { Layout, LayoutGrid, Palette } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
@@ -52,6 +53,34 @@ export default function AdminSettingsPage() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["/api/admin/settings"],
     queryFn: getQueryFn({}),
+  });
+  
+  // جلب إعدادات العرض
+  const { data: displayData, isLoading: isDisplayLoading } = useQuery({
+    queryKey: ["/api/admin/settings/display"],
+    queryFn: getQueryFn({}),
+  });
+  
+  // حفظ إعدادات العرض
+  const saveDisplaySettingsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/settings/display", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/display"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/display"] });
+      toast({
+        title: "تم حفظ إعدادات العرض بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "فشل حفظ إعدادات العرض",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Save general settings mutation
@@ -219,6 +248,14 @@ export default function AdminSettingsPage() {
     },
   });
 
+  // إعدادات العرض
+  const [displaySettings, setDisplaySettings] = useState<Record<string, any>>({
+    displayMode: "multi",
+    templateViewMode: "multi-page",
+    enableSocialFormats: true,
+    defaultSocialFormat: "instagram"
+  });
+  
   // Form states
   const [generalSettings, setGeneralSettings] = useState<Record<string, any>>({
     siteName: "",
@@ -267,8 +304,31 @@ export default function AdminSettingsPage() {
     ipBlockingTime: 30
   });
 
+  // التعامل مع إعدادات العرض
+  const handleDisplaySettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    setDisplaySettings(prev => ({
+      ...prev,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+  
+  // حفظ إعدادات العرض
+  const handleDisplaySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveDisplaySettingsMutation.mutate(displaySettings);
+  };
+  
+  // التبديل بين أوضاع عرض القوالب
+  const handleTemplateViewModeChange = (checked: boolean) => {
+    setDisplaySettings(prev => ({
+      ...prev,
+      templateViewMode: checked ? 'single-page' : 'multi-page'
+    }));
+  };
+  
   // Update form when settings are loaded
-  useState(() => {
+  useEffect(() => {
     if (!isLoading && settings) {
       if (settings.general) {
         setGeneralSettings(settings.general);
@@ -283,7 +343,12 @@ export default function AdminSettingsPage() {
         setSecuritySettings(settings.security);
       }
     }
-  });
+    
+    // تحديث إعدادات العرض
+    if (!isDisplayLoading && displayData && displayData.settings) {
+      setDisplaySettings(displayData.settings);
+    }
+  }, [isLoading, settings, isDisplayLoading, displayData]);
 
   // Handle form input change
   const handleGeneralSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -435,8 +500,9 @@ export default function AdminSettingsPage() {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-6 w-full max-w-4xl">
           <TabsTrigger value="general">عام</TabsTrigger>
+          <TabsTrigger value="display">العرض</TabsTrigger>
           <TabsTrigger value="email">البريد الإلكتروني</TabsTrigger>
           <TabsTrigger value="storage">التخزين</TabsTrigger>
           <TabsTrigger value="security">الأمان</TabsTrigger>
@@ -562,6 +628,129 @@ export default function AdminSettingsPage() {
                     className="min-w-[120px]"
                   >
                     {saveGeneralSettingsMutation.isPending ? (
+                      <>
+                        <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                        جاري الحفظ...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="ml-2 h-4 w-4" />
+                        حفظ الإعدادات
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="display" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Layout className="ml-2 h-5 w-5" />
+                إعدادات العرض
+              </CardTitle>
+              <CardDescription>
+                تخصيص واجهة المستخدم وطريقة عرض القوالب
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleDisplaySubmit} className="space-y-6">
+                {/* طريقة عرض القوالب */}
+                <div className="space-y-3">
+                  <div className="flex flex-col space-y-1.5">
+                    <h3 className="text-lg font-semibold">طريقة عرض القوالب</h3>
+                    <p className="text-sm text-muted-foreground">اختر طريقة عرض صفحة القوالب للمستخدمين</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded-lg p-4 flex flex-col space-y-4 items-center">
+                      <div className="flex items-center justify-center w-full h-32 bg-muted rounded-md">
+                        <LayoutGrid className="h-16 w-16 text-muted-foreground opacity-50" />
+                      </div>
+                      <h4 className="font-medium">الطريقة التقليدية (متعدد الصفحات)</h4>
+                      <p className="text-sm text-muted-foreground text-center">
+                        عرض القوالب ونموذج التعبئة والمعاينة في صفحات منفصلة
+                      </p>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Switch
+                          id="templateViewMode-multi"
+                          checked={displaySettings.templateViewMode === 'multi-page'}
+                          onCheckedChange={(checked) => {
+                            if (checked) handleTemplateViewModeChange(false);
+                          }}
+                        />
+                        <Label htmlFor="templateViewMode-multi">تفعيل</Label>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-lg p-4 flex flex-col space-y-4 items-center">
+                      <div className="flex items-center justify-center w-full h-32 bg-muted rounded-md">
+                        <Layout className="h-16 w-16 text-muted-foreground opacity-50" />
+                      </div>
+                      <h4 className="font-medium">الطريقة الموحدة (صفحة واحدة)</h4>
+                      <p className="text-sm text-muted-foreground text-center">
+                        عرض القوالب ونموذج التعبئة والمعاينة في صفحة واحدة
+                      </p>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Switch
+                          id="templateViewMode-single"
+                          checked={displaySettings.templateViewMode === 'single-page'}
+                          onCheckedChange={(checked) => {
+                            if (checked) handleTemplateViewModeChange(true);
+                          }}
+                        />
+                        <Label htmlFor="templateViewMode-single">تفعيل</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* إعدادات تنسيقات وسائل التواصل الاجتماعي */}
+                <div className="space-y-3">
+                  <div className="flex flex-col space-y-1.5">
+                    <h3 className="text-lg font-semibold">إعدادات التنسيقات الاجتماعية</h3>
+                    <p className="text-sm text-muted-foreground">إعدادات تصدير البطاقات لوسائل التواصل الاجتماعي</p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <Switch
+                      id="enableSocialFormats"
+                      checked={displaySettings.enableSocialFormats}
+                      onCheckedChange={(checked) => {
+                        setDisplaySettings(prev => ({ ...prev, enableSocialFormats: checked }));
+                      }}
+                    />
+                    <Label htmlFor="enableSocialFormats">تفعيل تنسيقات وسائل التواصل الاجتماعي</Label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultSocialFormat">التنسيق الافتراضي</Label>
+                    <select
+                      id="defaultSocialFormat"
+                      name="defaultSocialFormat"
+                      value={displaySettings.defaultSocialFormat}
+                      onChange={handleDisplaySettingsChange}
+                      className="block w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background"
+                    >
+                      <option value="instagram">Instagram (1:1)</option>
+                      <option value="story">Instagram Story (9:16)</option>
+                      <option value="facebook">Facebook (16:9)</option>
+                      <option value="twitter">Twitter (16:9)</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* زر الحفظ */}
+                <div className="flex justify-end">
+                  <Button 
+                    type="submit" 
+                    disabled={saveDisplaySettingsMutation.isPending}
+                    className="min-w-[120px]"
+                  >
+                    {saveDisplaySettingsMutation.isPending ? (
                       <>
                         <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                         جاري الحفظ...
