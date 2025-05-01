@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
 export interface Logo {
@@ -6,65 +6,52 @@ export interface Logo {
   name: string;
   imageUrl: string;
   userId: number;
-  active: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
-export const useUserLogos = () => {
+/**
+ * Hook for managing user logos with database storage
+ */
+export function useUserLogos() {
   const queryClient = useQueryClient();
-  
-  // جلب شعارات المستخدم
+
+  // Fetch user logos
   const userLogos = useQuery({
-    queryKey: ['/api/logos'],
-    queryFn: () => apiRequest('/api/logos/user'),
+    queryKey: ['/api/user/logos'],
+    retry: 1,
   });
-  
-  // رفع شعار جديد (استخدام FormData لرفع الملفات)
+
+  // Upload a new logo
   const uploadLogo = useMutation({
-    mutationFn: (formData: FormData) => 
-      fetch('/api/logos', {
+    mutationFn: async (formData: FormData) => {
+      return apiRequest('/api/user/logos', {
         method: 'POST',
         body: formData,
-        credentials: 'include',
-      }).then(res => {
-        if (!res.ok) throw new Error('فشل في رفع الشعار');
-        return res.json();
-      }),
+        headers: {
+          // Don't set Content-Type, it will be set automatically with boundary for FormData
+        },
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/logos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/logos'] });
     },
   });
-  
-  // تحديث معلومات الشعار
-  const updateLogo = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name?: string; active?: boolean } }) => 
-      apiRequest(`/api/logos/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/logos'] });
-    },
-  });
-  
-  // حذف شعار
+
+  // Delete a logo
   const deleteLogo = useMutation({
-    mutationFn: (id: number) => 
-      apiRequest(`/api/logos/${id}`, {
+    mutationFn: async (logoId: number) => {
+      return apiRequest(`/api/user/logos/${logoId}`, {
         method: 'DELETE',
-      }),
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/logos'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/logos'] });
     },
   });
-  
+
   return {
     userLogos,
     uploadLogo,
-    updateLogo,
     deleteLogo,
   };
-};
-
-export default useUserLogos;
+}

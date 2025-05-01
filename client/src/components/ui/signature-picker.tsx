@@ -42,7 +42,7 @@ export function SignaturePicker({
   selectedSignatureId, 
   signatureType = 'signature' 
 }: SignaturePickerProps) {
-  const { signatures, uploadSignature, deleteSignature } = useSignatures(signatureType);
+  const { signatures, uploadSignature, deleteSignature } = useSignatures();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [uploadName, setUploadName] = useState('');
