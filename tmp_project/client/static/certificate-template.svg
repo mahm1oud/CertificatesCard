@@ -1,0 +1,25 @@
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700">
+  <rect width="100%" height="100%" fill="#fffcf0"/>
+  <rect x="20" y="20" width="960" height="660" stroke="#d4af37" stroke-width="10" fill="transparent"/>
+  <rect x="40" y="40" width="920" height="620" stroke="#d4af37" stroke-width="2" fill="transparent" stroke-dasharray="5,5"/>
+  
+  <text x="500" y="100" font-family="Arial" font-size="40" text-anchor="middle" fill="#8B6914" font-weight="bold">شهادة تقدير</text>
+  
+  <text x="500" y="170" font-family="Arial" font-size="20" text-anchor="middle" fill="#8B6914">تشهد (اسم المؤسسة)</text>
+  <text x="500" y="200" font-family="Arial" font-size="20" text-anchor="middle" fill="#8B6914">بأن</text>
+  
+  <text x="500" y="250" font-family="Arial" font-size="30" text-anchor="middle" fill="#8B6914" font-weight="bold">الاسم هنا</text>
+  
+  <text x="500" y="310" font-family="Arial" font-size="18" text-anchor="middle" fill="#8B6914">قد شارك/ت بنجاح في</text>
+  <text x="500" y="350" font-family="Arial" font-size="18" text-anchor="middle" fill="#8B6914">وذلك تقديراً لجهوده/ها المتميزة</text>
+  <text x="500" y="390" font-family="Arial" font-size="18" text-anchor="middle" fill="#8B6914">بتاريخ 12/12/2025</text>
+  
+  <line x1="300" y1="500" x2="450" y2="500" stroke="#8B6914" stroke-width="1"/>
+  <text x="375" y="520" font-family="Arial" font-size="16" text-anchor="middle" fill="#8B6914">المدير</text>
+  
+  <line x1="550" y1="500" x2="700" y2="500" stroke="#8B6914" stroke-width="1"/>
+  <text x="625" y="520" font-family="Arial" font-size="16" text-anchor="middle" fill="#8B6914">المشرف</text>
+  
+  <circle cx="500" cy="580" r="40" stroke="#d4af37" stroke-width="2" fill="transparent"/>
+  <text x="500" y="585" font-family="Arial" font-size="14" text-anchor="middle" fill="#8B6914">ختم رسمي</text>
+</svg>

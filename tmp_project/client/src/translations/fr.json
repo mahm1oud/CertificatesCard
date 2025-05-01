@@ -1,0 +1,223 @@
+{
+  "app": {
+    "title": "Application de Certificats et Cartes",
+    "menu": {
+      "home": "Accueil",
+      "certificates": "Certificats",
+      "cards": "Cartes",
+      "templates": "Modèles",
+      "account": "Compte",
+      "login": "Connexion",
+      "register": "S'inscrire",
+      "logout": "Déconnexion"
+    },
+    "actions": {
+      "create": "Créer",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "submit": "Soumettre",
+      "search": "Rechercher",
+      "upload": "Télécharger",
+      "download": "Télécharger",
+      "share": "Partager",
+      "view": "Voir",
+      "next": "Suivant",
+      "previous": "Précédent",
+      "confirm": "Confirmer"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Tableau de bord",
+      "quickLinks": "Liens rapides",
+      "recentActivity": "Activité récente",
+      "stats": "Statistiques",
+      "users": "Utilisateurs",
+      "templates": "Modèles",
+      "categories": "Catégories",
+      "certificates": "Certificats",
+      "cards": "Cartes"
+    },
+    "templates": {
+      "title": "Gérer les modèles",
+      "add": "Ajouter un nouveau modèle",
+      "edit": "Modifier le modèle",
+      "fields": "Champs du modèle",
+      "preview": "Aperçu"
+    },
+    "templateFields": {
+      "title": "Champs du modèle",
+      "add": "Ajouter un nouveau champ",
+      "edit": "Modifier le champ",
+      "name": "Nom du champ",
+      "label": "Étiquette du champ",
+      "type": "Type de champ",
+      "required": "Obligatoire",
+      "default": "Valeur par défaut",
+      "placeholder": "Texte d'exemple",
+      "options": "Options",
+      "position": "Position",
+      "style": "Style"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "general": "Paramètres généraux",
+      "appearance": "Apparence",
+      "certificates": "Paramètres des certificats",
+      "cards": "Paramètres des cartes",
+      "social": "Médias sociaux",
+      "workflow": "Flux de travail",
+      "display": {
+        "title": "Méthode d'affichage",
+        "singlePage": "Page unique",
+        "multiPage": "Pages multiples",
+        "description": "Définir comment les formulaires de création sont affichés"
+      }
+    },
+    "users": {
+      "title": "Gérer les utilisateurs",
+      "add": "Ajouter un nouvel utilisateur",
+      "edit": "Modifier l'utilisateur",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "role": "Rôle"
+    },
+    "socialAuth": {
+      "title": "Paramètres d'authentification sociale",
+      "providers": {
+        "google": "Google",
+        "facebook": "Facebook",
+        "twitter": "Twitter",
+        "linkedin": "LinkedIn"
+      },
+      "clientId": "ID client",
+      "clientSecret": "Secret client",
+      "redirectUri": "URI de redirection",
+      "scope": "Portée",
+      "enabled": "Activé",
+      "disabled": "Désactivé"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "username": "Nom d'utilisateur",
+      "email": "Email",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "forgotPassword": "Mot de passe oublié?",
+      "register": "Créer un nouveau compte",
+      "social": "Ou se connecter avec"
+    },
+    "register": {
+      "title": "Créer un nouveau compte",
+      "name": "Nom",
+      "username": "Nom d'utilisateur",
+      "email": "Email",
+      "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "submit": "S'inscrire",
+      "login": "Vous avez déjà un compte? Se connecter",
+      "social": "Ou s'inscrire avec"
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser le mot de passe",
+      "email": "Email",
+      "submit": "Envoyer le lien de réinitialisation",
+      "login": "Retour à la connexion"
+    }
+  },
+  "certificates": {
+    "create": {
+      "title": "Créer un nouveau certificat",
+      "selectTemplate": "Sélectionner un modèle de certificat",
+      "fillDetails": "Entrer les détails",
+      "preview": "Aperçu du certificat",
+      "generate": "Générer le certificat"
+    },
+    "list": {
+      "title": "Mes certificats",
+      "empty": "Pas encore de certificats",
+      "create": "Créer un nouveau certificat"
+    },
+    "view": {
+      "download": "Télécharger le certificat",
+      "share": "Partager le certificat",
+      "qrCode": "Code QR du certificat",
+      "verify": "Vérifier le certificat"
+    }
+  },
+  "cards": {
+    "create": {
+      "title": "Créer une nouvelle carte",
+      "selectTemplate": "Sélectionner un modèle de carte",
+      "fillDetails": "Entrer les détails",
+      "preview": "Aperçu de la carte",
+      "generate": "Générer la carte"
+    },
+    "list": {
+      "title": "Mes cartes",
+      "empty": "Pas encore de cartes",
+      "create": "Créer une nouvelle carte"
+    },
+    "view": {
+      "download": "Télécharger la carte",
+      "share": "Partager la carte",
+      "qrCode": "Code QR de la carte"
+    }
+  },
+  "share": {
+    "title": "Partager",
+    "link": "Lien de partage",
+    "copyLink": "Copier le lien",
+    "download": "Télécharger",
+    "qrCode": "Code QR",
+    "social": {
+      "whatsapp": "WhatsApp",
+      "facebook": "Facebook",
+      "twitter": "Twitter",
+      "telegram": "Telegram",
+      "email": "Email"
+    },
+    "success": "Lien copié avec succès"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "empty": "Aucune donnée disponible",
+    "success": "Opération réussie",
+    "warning": "Avertissement",
+    "info": "Information",
+    "confirm": "Êtes-vous sûr?",
+    "yes": "Oui",
+    "no": "Non",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "language": "Langue",
+    "langName": "Français"
+  },
+  "errors": {
+    "required": "Ce champ est obligatoire",
+    "email": "Adresse email invalide",
+    "minLength": "Doit contenir plus de {{min}} caractères",
+    "maxLength": "Doit contenir moins de {{max}} caractères",
+    "passwordMatch": "Les mots de passe ne correspondent pas",
+    "serverError": "Erreur du serveur, veuillez réessayer plus tard",
+    "unauthorized": "Vous n'êtes pas autorisé à accéder à cette page",
+    "notFound": "Page non trouvée",
+    "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide"
+  },
+  "socialMediaFormats": {
+    "title": "Formats pour médias sociaux",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "whatsapp": "WhatsApp",
+    "pinterest": "Pinterest",
+    "selectFormat": "Sélectionner un format"
+  }
+}

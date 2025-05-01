@@ -1,0 +1,30 @@
+<svg width="800" height="800" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="40" y="40" width="720" height="720" stroke="#5E35B1" stroke-width="8" fill="transparent"/>
+  
+  <g transform="translate(400, 150)">
+    <path d="M-120,-40 Q0,40 120,-40" stroke="#5E35B1" stroke-width="3" fill="transparent"/>
+    <path d="M-100,-20 Q0,60 100,-20" stroke="#5E35B1" stroke-width="3" fill="transparent"/>
+    <path d="M-80,0 Q0,80 80,0" stroke="#5E35B1" stroke-width="3" fill="transparent"/>
+  </g>
+  
+  <text x="400" y="250" font-family="Arial" font-size="50" text-anchor="middle" fill="#5E35B1" font-weight="bold">عيد سعيد</text>
+  <text x="400" y="310" font-family="Arial" font-size="30" text-anchor="middle" fill="#5E35B1">عيد الفطر المبارك</text>
+  
+  <line x1="280" y1="350" x2="520" y2="350" stroke="#5E35B1" stroke-width="2"/>
+  
+  <text x="400" y="400" font-family="Arial" font-size="24" text-anchor="middle" fill="#333333">من</text>
+  <text x="400" y="440" font-family="Arial" font-size="30" text-anchor="middle" fill="#333333">[الاسم]</text>
+  
+  <text x="400" y="500" font-family="Arial" font-size="24" text-anchor="middle" fill="#333333">إلى</text>
+  <text x="400" y="540" font-family="Arial" font-size="30" text-anchor="middle" fill="#333333">[المُرسل إليه]</text>
+  
+  <text x="400" y="600" font-family="Arial" font-size="24" text-anchor="middle" fill="#5E35B1">أعاده الله علينا وعليكم بالخير واليمن والبركات</text>
+  <text x="400" y="640" font-family="Arial" font-size="24" text-anchor="middle" fill="#5E35B1">وكل عام وأنتم بخير</text>
+  
+  <g transform="translate(400, 700)">
+    <circle cx="-60" cy="0" r="15" fill="#5E35B1" opacity="0.7"/>
+    <circle cx="0" cy="0" r="15" fill="#5E35B1" opacity="0.9"/>
+    <circle cx="60" cy="0" r="15" fill="#5E35B1" opacity="0.7"/>
+  </g>
+</svg>

@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "Certificates & Cards App",
+    "menu": {
+      "home": "Home",
+      "certificates": "Certificates",
+      "cards": "Cards",
+      "templates": "Templates",
+      "account": "Account",
+      "login": "Login",
+      "register": "Register",
+      "logout": "Logout"
+    },
+    "actions": {
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "search": "Search",
+      "upload": "Upload",
+      "download": "Download",
+      "share": "Share",
+      "view": "View",
+      "next": "Next",
+      "previous": "Previous",
+      "confirm": "Confirm"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Dashboard",
+      "quickLinks": "Quick Links",
+      "recentActivity": "Recent Activity",
+      "stats": "Statistics",
+      "users": "Users",
+      "templates": "Templates",
+      "categories": "Categories",
+      "certificates": "Certificates",
+      "cards": "Cards"
+    },
+    "templates": {
+      "title": "Manage Templates",
+      "add": "Add New Template",
+      "edit": "Edit Template",
+      "fields": "Template Fields",
+      "preview": "Preview"
+    },
+    "templateFields": {
+      "title": "Template Fields",
+      "add": "Add New Field",
+      "edit": "Edit Field",
+      "name": "Field Name",
+      "label": "Field Label",
+      "type": "Field Type",
+      "required": "Required",
+      "default": "Default Value",
+      "placeholder": "Placeholder Text",
+      "options": "Options",
+      "position": "Position",
+      "style": "Style"
+    },
+    "settings": {
+      "title": "Settings",
+      "general": "General Settings",
+      "appearance": "Appearance",
+      "certificates": "Certificate Settings",
+      "cards": "Card Settings",
+      "social": "Social Media",
+      "workflow": "Workflow",
+      "display": {
+        "title": "Display Method",
+        "singlePage": "Single Page",
+        "multiPage": "Multiple Pages",
+        "description": "Set how certificate and card creation forms are displayed"
+      }
+    },
+    "users": {
+      "title": "Manage Users",
+      "add": "Add New User",
+      "edit": "Edit User",
+      "active": "Active",
+      "inactive": "Inactive",
+      "role": "Role"
+    },
+    "socialAuth": {
+      "title": "Social Authentication Settings",
+      "providers": {
+        "google": "Google",
+        "facebook": "Facebook",
+        "twitter": "Twitter",
+        "linkedin": "LinkedIn"
+      },
+      "clientId": "Client ID",
+      "clientSecret": "Client Secret",
+      "redirectUri": "Redirect URI",
+      "scope": "Scope",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "forgotPassword": "Forgot Password?",
+      "register": "Create New Account",
+      "social": "Or login with"
+    },
+    "register": {
+      "title": "Create New Account",
+      "name": "Name",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Register",
+      "login": "Already have an account? Login",
+      "social": "Or register with"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "login": "Back to Login"
+    }
+  },
+  "certificates": {
+    "create": {
+      "title": "Create New Certificate",
+      "selectTemplate": "Select Certificate Template",
+      "fillDetails": "Enter Details",
+      "preview": "Preview Certificate",
+      "generate": "Generate Certificate"
+    },
+    "list": {
+      "title": "My Certificates",
+      "empty": "No certificates yet",
+      "create": "Create New Certificate"
+    },
+    "view": {
+      "download": "Download Certificate",
+      "share": "Share Certificate",
+      "qrCode": "Certificate QR Code",
+      "verify": "Verify Certificate"
+    }
+  },
+  "cards": {
+    "create": {
+      "title": "Create New Card",
+      "selectTemplate": "Select Card Template",
+      "fillDetails": "Enter Details",
+      "preview": "Preview Card",
+      "generate": "Generate Card"
+    },
+    "list": {
+      "title": "My Cards",
+      "empty": "No cards yet",
+      "create": "Create New Card"
+    },
+    "view": {
+      "download": "Download Card",
+      "share": "Share Card",
+      "qrCode": "Card QR Code"
+    }
+  },
+  "share": {
+    "title": "Share",
+    "link": "Share Link",
+    "copyLink": "Copy Link",
+    "copied": "Link Copied!",
+    "download": "Download",
+    "qrCode": "QR Code",
+    "social": "Social Media",
+    "preview": "Preview",
+    "qrCodePreview": "QR Code Preview",
+    "qrCodeDescription": "Scan QR code to view the card",
+    "downloadQrCode": "Download QR Code",
+    "description": "Choose a platform and share your card on social media",
+    "share": "Share",
+    "generate": "Generate",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "whatsapp": "WhatsApp",
+    "instagram": "Instagram",
+    "twitterText": "Check out this card I created!",
+    "social": {
+      "whatsapp": "WhatsApp",
+      "facebook": "Facebook",
+      "twitter": "Twitter",
+      "telegram": "Telegram",
+      "email": "Email"
+    },
+    "success": "Link copied successfully"
+  },
+  "socialMediaFormats": {
+    "title": "Social Media Formats",
+    "selectFormat": "Select Format",
+    "instagram": "Instagram",
+    "instagramStory": "Instagram Story",
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "whatsapp": "WhatsApp",
+    "pinterest": "Pinterest",
+    "dimensions": "Dimensions",
+    "ratio": "Ratio"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "empty": "No data available",
+    "success": "Operation successful",
+    "warning": "Warning",
+    "info": "Information",
+    "confirm": "Are you sure?",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "language": "Language",
+    "langName": "English"
+  },
+  "errors": {
+    "required": "This field is required",
+    "email": "Invalid email address",
+    "minLength": "Must be more than {{min}} characters",
+    "maxLength": "Must be less than {{max}} characters",
+    "passwordMatch": "Passwords don't match",
+    "serverError": "Server error, please try again later",
+    "unauthorized": "You are not authorized to access this page",
+    "notFound": "Page not found",
+    "invalidCredentials": "Invalid username or password"
+  }
+}

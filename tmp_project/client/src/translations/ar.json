@@ -1,0 +1,240 @@
+{
+  "app": {
+    "title": "برنامج الشهادات والبطاقات",
+    "menu": {
+      "home": "الرئيسية",
+      "certificates": "الشهادات",
+      "cards": "البطاقات",
+      "templates": "القوالب",
+      "account": "الحساب",
+      "login": "تسجيل الدخول",
+      "register": "إنشاء حساب",
+      "logout": "تسجيل الخروج"
+    },
+    "actions": {
+      "create": "إنشاء",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "submit": "إرسال",
+      "search": "بحث",
+      "upload": "رفع",
+      "download": "تنزيل",
+      "share": "مشاركة",
+      "view": "عرض",
+      "next": "التالي",
+      "previous": "السابق",
+      "confirm": "تأكيد"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "لوحة التحكم",
+      "quickLinks": "روابط سريعة",
+      "recentActivity": "آخر النشاطات",
+      "stats": "إحصائيات",
+      "users": "المستخدمين",
+      "templates": "القوالب",
+      "categories": "التصنيفات",
+      "certificates": "الشهادات",
+      "cards": "البطاقات"
+    },
+    "templates": {
+      "title": "إدارة القوالب",
+      "add": "إضافة قالب جديد",
+      "edit": "تعديل القالب",
+      "fields": "حقول القالب",
+      "preview": "معاينة"
+    },
+    "templateFields": {
+      "title": "حقول القالب",
+      "add": "إضافة حقل جديد",
+      "edit": "تعديل الحقل",
+      "name": "اسم الحقل",
+      "label": "عنوان الحقل",
+      "type": "نوع الحقل",
+      "required": "إلزامي",
+      "default": "القيمة الافتراضية",
+      "placeholder": "النص التوضيحي",
+      "options": "الخيارات",
+      "position": "الموقع",
+      "style": "النمط"
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "general": "إعدادات عامة",
+      "appearance": "المظهر",
+      "certificates": "إعدادات الشهادات",
+      "cards": "إعدادات البطاقات",
+      "social": "وسائل التواصل الاجتماعي",
+      "workflow": "تدفق العمل",
+      "display": {
+        "title": "طريقة العرض",
+        "singlePage": "صفحة واحدة",
+        "multiPage": "متعدد الصفحات",
+        "description": "تحديد طريقة عرض نماذج إنشاء الشهادات والبطاقات"
+      }
+    },
+    "users": {
+      "title": "إدارة المستخدمين",
+      "add": "إضافة مستخدم جديد",
+      "edit": "تعديل المستخدم",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "role": "الدور"
+    },
+    "socialAuth": {
+      "title": "إعدادات المصادقة الاجتماعية",
+      "providers": {
+        "google": "جوجل",
+        "facebook": "فيسبوك",
+        "twitter": "تويتر",
+        "linkedin": "لينكد إن"
+      },
+      "clientId": "معرّف العميل",
+      "clientSecret": "كلمة السر",
+      "redirectUri": "رابط إعادة التوجيه",
+      "scope": "نطاق الصلاحيات",
+      "enabled": "مفعّل",
+      "disabled": "معطّل"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "تسجيل الدخول",
+      "username": "اسم المستخدم",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "submit": "تسجيل الدخول",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "register": "إنشاء حساب جديد",
+      "social": "أو تسجيل الدخول باستخدام"
+    },
+    "register": {
+      "title": "إنشاء حساب جديد",
+      "name": "الاسم",
+      "username": "اسم المستخدم",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "submit": "إنشاء حساب",
+      "login": "لديك حساب بالفعل؟ تسجيل الدخول",
+      "social": "أو إنشاء حساب باستخدام"
+    },
+    "forgotPassword": {
+      "title": "استعادة كلمة المرور",
+      "email": "البريد الإلكتروني",
+      "submit": "إرسال رابط إعادة التعيين",
+      "login": "العودة إلى تسجيل الدخول"
+    }
+  },
+  "certificates": {
+    "create": {
+      "title": "إنشاء شهادة جديدة",
+      "selectTemplate": "اختر قالب الشهادة",
+      "fillDetails": "أدخل البيانات",
+      "preview": "معاينة الشهادة",
+      "generate": "إنشاء الشهادة"
+    },
+    "list": {
+      "title": "شهاداتي",
+      "empty": "لا توجد شهادات بعد",
+      "create": "إنشاء شهادة جديدة"
+    },
+    "view": {
+      "download": "تنزيل الشهادة",
+      "share": "مشاركة الشهادة",
+      "qrCode": "رمز QR للشهادة",
+      "verify": "تحقق من صحة الشهادة"
+    }
+  },
+  "cards": {
+    "create": {
+      "title": "إنشاء بطاقة جديدة",
+      "selectTemplate": "اختر قالب البطاقة",
+      "fillDetails": "أدخل البيانات",
+      "preview": "معاينة البطاقة",
+      "generate": "إنشاء البطاقة"
+    },
+    "list": {
+      "title": "بطاقاتي",
+      "empty": "لا توجد بطاقات بعد",
+      "create": "إنشاء بطاقة جديدة"
+    },
+    "view": {
+      "download": "تنزيل البطاقة",
+      "share": "مشاركة البطاقة",
+      "qrCode": "رمز QR للبطاقة"
+    }
+  },
+  "share": {
+    "title": "مشاركة",
+    "link": "رابط المشاركة",
+    "copyLink": "نسخ الرابط",
+    "copied": "تم النسخ!",
+    "download": "تنزيل",
+    "qrCode": "رمز QR",
+    "socialMedia": "مشاركة اجتماعية",
+    "preview": "معاينة",
+    "qrCodePreview": "معاينة رمز QR",
+    "qrCodeDescription": "امسح رمز QR لمشاهدة البطاقة",
+    "downloadQrCode": "تنزيل رمز QR",
+    "description": "اختر منصة وشارك بطاقتك على وسائل التواصل الاجتماعي",
+    "share": "مشاركة",
+    "generate": "توليد",
+    "facebook": "فيسبوك",
+    "twitter": "تويتر",
+    "whatsapp": "واتساب",
+    "instagram": "انستغرام",
+    "twitterText": "تحقق من هذه البطاقة التي أنشأتها!",
+    "social": {
+      "whatsapp": "واتساب",
+      "facebook": "فيسبوك",
+      "twitter": "تويتر",
+      "telegram": "تلغرام",
+      "email": "البريد الإلكتروني"
+    },
+    "success": "تم نسخ الرابط بنجاح"
+  },
+  "socialMediaFormats": {
+    "title": "تنسيقات وسائل التواصل الاجتماعي",
+    "selectFormat": "اختر التنسيق",
+    "instagram": "انستغرام",
+    "instagramStory": "قصة انستغرام",
+    "facebook": "فيسبوك",
+    "twitter": "تويتر",
+    "whatsapp": "واتساب",
+    "pinterest": "بينترست",
+    "dimensions": "الأبعاد",
+    "ratio": "النسبة"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "empty": "لا توجد بيانات",
+    "success": "تمت العملية بنجاح",
+    "warning": "تحذير",
+    "info": "معلومات",
+    "confirm": "هل أنت متأكد؟",
+    "yes": "نعم",
+    "no": "لا",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "language": "اللغة",
+    "langName": "العربية"
+  },
+  "errors": {
+    "required": "هذا الحقل مطلوب",
+    "email": "البريد الإلكتروني غير صحيح",
+    "minLength": "يجب أن يكون الحقل أكثر من {{min}} أحرف",
+    "maxLength": "يجب أن يكون الحقل أقل من {{max}} أحرف",
+    "passwordMatch": "كلمات المرور غير متطابقة",
+    "serverError": "حدث خطأ في الخادم، يرجى المحاولة لاحقًا",
+    "unauthorized": "غير مصرح لك بالوصول",
+    "notFound": "الصفحة غير موجودة",
+    "invalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة"
+  }
+}
