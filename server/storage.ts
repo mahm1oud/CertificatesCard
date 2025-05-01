@@ -529,13 +529,13 @@ export class DatabaseStorage implements IStorage {
       const result = await pool.query(query, [`user_${userId}_layout`, `user_${userId}_theme`]);
       
       if (!result.rows || result.rows.length === 0) {
-        return { layout: 'fluid', theme: 'system' }; // Default values
+        return { layout: 'boxed', theme: 'light' }; // Default values
       }
       
       // Create an object with the user preferences
       const preferences: {layout?: string; theme?: string} = {
-        layout: 'fluid',  // Default
-        theme: 'system'   // Default
+        layout: 'boxed',  // Default
+        theme: 'light'   // Default
       };
       
       for (const row of result.rows) {
@@ -564,7 +564,7 @@ export class DatabaseStorage implements IStorage {
       return preferences;
     } catch (error) {
       console.error('Error getting user preferences:', error);
-      return { layout: 'fluid', theme: 'system' }; // Return defaults on error
+      return { layout: 'boxed', theme: 'light' }; // Return defaults on error
     }
   }
 
@@ -576,7 +576,7 @@ export class DatabaseStorage implements IStorage {
         const layoutQuery = `
           INSERT INTO settings (key, value, category, description, updated_at)
           VALUES ($1, $2, $3, $4, NOW())
-          ON CONFLICT (key) 
+          ON CONFLICT (category, key) 
           DO UPDATE SET 
             value = $2,
             updated_at = NOW()
@@ -597,7 +597,7 @@ export class DatabaseStorage implements IStorage {
         const themeQuery = `
           INSERT INTO settings (key, value, category, description, updated_at)
           VALUES ($1, $2, $3, $4, NOW())
-          ON CONFLICT (key) 
+          ON CONFLICT (category, key) 
           DO UPDATE SET 
             value = $2,
             updated_at = NOW()
