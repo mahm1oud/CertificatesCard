@@ -6,7 +6,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, MonitorSmartphone, LayoutGrid, LayoutFluid, Loader2 } from 'lucide-react';
+import { Moon, Sun, MonitorSmartphone, LayoutGrid, Maximize, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -227,7 +227,7 @@ export default function UserPreferences() {
                             htmlFor="layout-fluid"
                             className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                           >
-                            <LayoutFluid className="h-6 w-6 mb-2" />
+                            <Maximize className="h-6 w-6 mb-2" />
                             <FormLabel className="font-normal">مرن (Fluid)</FormLabel>
                             <FormDescription className="text-center text-xs">
                               عرض المحتوى على كامل مساحة الشاشة
