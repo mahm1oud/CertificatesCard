@@ -864,6 +864,86 @@ export const DraggableFieldsPreviewUnified: React.FC<DraggableFieldsPreviewUnifi
     
     onFieldsChange(updatedFields);
   };
+  
+  // تدوير العناصر المحددة
+  const handleRotate = (degrees: number) => {
+    if (selectedIds.length === 0) return;
+    
+    saveHistory();
+    
+    // تحديث الحقول بإضافة درجات التدوير إلى الدوران الحالي
+    const updatedFields = fields.map(field => {
+      if (selectedIds.includes(field.id)) {
+        const currentRotation = field.rotation || 0;
+        const newRotation = (currentRotation + degrees) % 360; // تأكد من أن الدوران بين 0 و 359 درجة
+        
+        return {
+          ...field,
+          rotation: newRotation
+        };
+      }
+      return field;
+    });
+    
+    onFieldsChange(updatedFields);
+    
+    toast?.({
+      title: "تم تدوير العناصر",
+      description: `تم تدوير ${selectedIds.length} عنصر بمقدار ${degrees} درجة`,
+      duration: 2000
+    });
+  };
+  
+  // تغيير حجم العناصر المحددة
+  const handleResize = (scale: number) => {
+    if (selectedIds.length === 0) return;
+    
+    saveHistory();
+    
+    // تحديث الحقول بتطبيق نسبة التكبير/التصغير
+    const updatedFields = fields.map(field => {
+      if (selectedIds.includes(field.id)) {
+        if (field.type === 'text') {
+          // للنصوص، نقوم بتكبير/تصغير حجم الخط والعرض الأقصى
+          const style = field.style || {};
+          const fontSize = style.fontSize || 24;
+          const maxWidth = style.maxWidth || 200;
+          
+          return {
+            ...field,
+            style: {
+              ...style,
+              fontSize: Math.max(8, Math.round(fontSize * scale)), // الحد الأدنى لحجم الخط هو 8
+              maxWidth: Math.max(50, Math.round(maxWidth * scale)) // الحد الأدنى للعرض هو 50
+            }
+          };
+        } else if (field.type === 'image') {
+          // للصور، نقوم بتكبير/تصغير الحجم الأقصى للصورة
+          const style = field.style || {};
+          const imageMaxWidth = style.imageMaxWidth || Math.round(imageSize.width / 4);
+          const imageMaxHeight = style.imageMaxHeight || Math.round(imageSize.height / 4);
+          
+          return {
+            ...field,
+            style: {
+              ...style,
+              imageMaxWidth: Math.max(20, Math.round(imageMaxWidth * scale)), // الحد الأدنى لعرض الصورة هو 20
+              imageMaxHeight: Math.max(20, Math.round(imageMaxHeight * scale)) // الحد الأدنى لارتفاع الصورة هو 20
+            }
+          };
+        }
+      }
+      return field;
+    });
+    
+    onFieldsChange(updatedFields);
+    
+    toast?.({
+      title: scale > 1 ? "تم تكبير العناصر" : "تم تصغير العناصر",
+      description: `تم تغيير حجم ${selectedIds.length} عنصر بنسبة ${(scale * 100 - 100).toFixed(0)}%`,
+      duration: 2000
+    });
+  };
 
   // تحديد لون الخط الإرشادي حسب النوع
   const getGuidelineColor = (type: string = '') => {
@@ -994,6 +1074,48 @@ export const DraggableFieldsPreviewUnified: React.FC<DraggableFieldsPreviewUnifi
             ) : (
               <EyeOff className="w-4 h-4" />
             )}
+          </button>
+          
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          
+          {/* التحكم في التدوير */}
+          <button 
+            className={`p-1 rounded ${selectedIds.length > 0 ? 'bg-orange-100 hover:bg-orange-200' : 'bg-gray-100 text-gray-400'}`}
+            onClick={() => handleRotate(-15)} // تدوير 15 درجة عكس عقارب الساعة
+            disabled={selectedIds.length === 0}
+            title="تدوير العناصر لليسار"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          
+          <button 
+            className={`p-1 rounded ${selectedIds.length > 0 ? 'bg-orange-100 hover:bg-orange-200' : 'bg-gray-100 text-gray-400'}`}
+            onClick={() => handleRotate(15)} // تدوير 15 درجة مع عقارب الساعة
+            disabled={selectedIds.length === 0}
+            title="تدوير العناصر لليمين"
+          >
+            <RotateCw className="w-4 h-4" />
+          </button>
+          
+          <div className="h-4 w-px bg-gray-300 mx-1"></div>
+          
+          {/* التحكم في الحجم */}
+          <button 
+            className={`p-1 rounded ${selectedIds.length > 0 ? 'bg-teal-100 hover:bg-teal-200' : 'bg-gray-100 text-gray-400'}`}
+            onClick={() => handleResize(1.1)} // تكبير بنسبة 10%
+            disabled={selectedIds.length === 0}
+            title="تكبير العناصر"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          
+          <button 
+            className={`p-1 rounded ${selectedIds.length > 0 ? 'bg-teal-100 hover:bg-teal-200' : 'bg-gray-100 text-gray-400'}`}
+            onClick={() => handleResize(0.9)} // تصغير بنسبة 10%
+            disabled={selectedIds.length === 0}
+            title="تصغير العناصر"
+          >
+            <ZoomOut className="w-4 h-4" />
           </button>
           
           <div className="ml-auto"></div>
