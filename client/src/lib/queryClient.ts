@@ -2,8 +2,27 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorMessage = res.statusText;
+    
+    try {
+      // محاولة قراءة الرسالة من جسم الاستجابة
+      const text = await res.text();
+      if (text) {
+        // محاولة تحليل النص كـ JSON للحصول على رسالة الخطأ
+        try {
+          const jsonError = JSON.parse(text);
+          errorMessage = jsonError.message || jsonError.error || text;
+        } catch {
+          // إذا لم يكن النص JSON، استخدم النص مباشرة
+          errorMessage = text;
+        }
+      }
+    } catch (e) {
+      // إذا فشلت قراءة النص، استخدم res.statusText كما هو
+      console.error('Failed to read error response:', e);
+    }
+    
+    throw new Error(`${res.status}: ${errorMessage}`);
   }
 }
 
@@ -83,12 +102,32 @@ export async function apiRequest<T = any>(
 
     await throwIfResNotOk(res);
     
+    // معالجة محسنة لقراءة البيانات من الاستجابة لتجنب خطأ 'body stream already read'
+    let responseData: T;
+    
     const contentType = res.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      return await res.json() as T;
+    try {
+      // محاولة قراءة البيانات كـ JSON أولاً بغض النظر عن نوع المحتوى
+      responseData = await res.json() as T;
+    } catch (error) {
+      try {
+        // إذا فشلت قراءة JSON، نحاول قراءة المحتوى كنص
+        const text = await res.text();
+        // محاولة تحويل النص إلى JSON إذا كان ممكناً
+        try {
+          responseData = JSON.parse(text) as T;
+        } catch {
+          // إذا فشل التحويل، نعيد النص كما هو
+          responseData = text as unknown as T;
+        }
+      } catch (textError) {
+        // إذا فشل كل شيء، نعيد كائن فارغ أو قيمة افتراضية
+        console.error('Failed to read response body:', textError);
+        responseData = {} as T;
+      }
     }
     
-    return res as unknown as T;
+    return responseData;
   } catch (error) {
     // إلغاء المهلة الزمنية في حالة حدوث خطأ
     clearTimeout(timeoutId);
@@ -123,7 +162,23 @@ export const getQueryFn: <T>(options?: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    // استخدام نفس منطق معالجة الاستجابة المُحسَّن من دالة apiRequest
+    try {
+      return await res.json();
+    } catch (error) {
+      try {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          return text;
+        }
+      } catch (textError) {
+        console.error('Failed to read response body in queryFn:', textError);
+        return {};
+      }
+    }
   };
 
 export const queryClient = new QueryClient({

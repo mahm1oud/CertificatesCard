@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -62,21 +62,15 @@ function Router() {
     theme: 'system'
   });
   
-  // جلب إعدادات العرض
+  // جلب إعدادات العرض من المسار الموحد
   useEffect(() => {
     async function fetchDisplaySettings() {
       try {
-        // نحاول جلب الإعدادات من الخادم أولاً
-        const response = await fetch('/api/display');
-        
-        if (response.ok) {
-          const data = await response.json();
-          setDisplaySettings(data.settings || { templateViewMode: 'multi-page' });
-        } else {
-          // إذا فشل الطلب (مثلاً، المسار غير متاح)، نستخدم القيم الافتراضية
-          setDisplaySettings({ templateViewMode: 'multi-page' });
-        }
+        // نحاول جلب الإعدادات من الخادم باستخدام apiRequest
+        const data = await apiRequest('GET', '/api/display-settings');
+        setDisplaySettings(data.settings || { templateViewMode: 'multi-page' });
       } catch (error) {
+        // إذا فشل الطلب (مثلاً، المسار غير متاح)، نستخدم القيم الافتراضية
         console.error('Error fetching display settings:', error);
         // استخدام القيم الافتراضية في حال حدوث خطأ
         setDisplaySettings({ templateViewMode: 'multi-page' });
@@ -92,10 +86,8 @@ function Router() {
   useEffect(() => {
     async function fetchUserPreferences() {
       try {
-        const response = await fetch('/api/user/preferences');
-        
-        if (response.ok) {
-          const data = await response.json();
+        const data = await apiRequest('GET', '/api/user/preferences', undefined, { on401: 'returnNull' });
+        if (data) {
           setUserPreferences({
             layout: data.layout || 'fluid',
             theme: data.theme || 'system'

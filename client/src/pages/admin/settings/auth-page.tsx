@@ -2,13 +2,19 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+import {
   Loader2,
   Save,
   Mail,
@@ -23,18 +29,18 @@ import { useToast } from "@/hooks/use-toast";
 export default function AdminAuthSettingsPage() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Authentication Settings
   const [authSettings, setAuthSettings] = useState({
     // Authentication Options
     enableRegistration: true,
     requireEmailVerification: true,
     allowPasswordReset: true,
-    
+
     // Session Settings
     sessionTimeout: 86400, // 24 hours in seconds
     rememberMeDuration: 30, // 30 days
-    
+
     // Password Settings
     minPasswordLength: 8,
     requireUppercase: true,
@@ -43,7 +49,7 @@ export default function AdminAuthSettingsPage() {
     requireSpecialChars: true,
     passwordExpirationDays: 90, // 0 = never expire
     passwordHistory: 3, // 0 = no history check
-    
+
     // SMTP Settings
     smtpHost: "",
     smtpPort: 587,
@@ -56,32 +62,32 @@ export default function AdminAuthSettingsPage() {
 
   // Fetch authentication settings
   const { isLoading } = useQuery({
-    queryKey: ['/api/admin/settings/auth'],
+    queryKey: ["/api/admin/settings/auth"],
     queryFn: getQueryFn({}),
     onSuccess: (data) => {
       if (data && data.settings) {
-        setAuthSettings(prev => ({
+        setAuthSettings((prev) => ({
           ...prev,
-          ...data.settings
+          ...data.settings,
         }));
       }
     },
     onError: (error) => {
-      console.error('Error fetching auth settings:', error);
+      console.error("Error fetching auth settings:", error);
       toast({
         title: "خطأ في جلب الإعدادات",
         description: "حدث خطأ أثناء جلب إعدادات المصادقة",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Save authentication settings
   const saveAuthSettingsMutation = useMutation({
     mutationFn: async (settings: typeof authSettings) => {
-      return await apiRequest('/api/admin/settings/auth', {
-        method: 'POST',
-        body: { settings }
+      return await apiRequest("/api/admin/settings/auth", {
+        method: "POST",
+        body: { settings },
       });
     },
     onSuccess: () => {
@@ -89,7 +95,7 @@ export default function AdminAuthSettingsPage() {
         title: "تم حفظ الإعدادات",
         description: "تم حفظ إعدادات المصادقة بنجاح",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/auth'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/auth"] });
     },
     onError: (error) => {
       toast({
@@ -97,30 +103,34 @@ export default function AdminAuthSettingsPage() {
         description: "حدث خطأ أثناء حفظ إعدادات المصادقة",
         variant: "destructive",
       });
-      console.error('Error saving auth settings:', error);
-    }
+      console.error("Error saving auth settings:", error);
+    },
   });
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    
+
     saveAuthSettingsMutation.mutate(authSettings, {
       onSettled: () => {
         setIsSaving(false);
-      }
+      },
     });
   };
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    
-    setAuthSettings(prev => ({
+
+    setAuthSettings((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : 
-              type === 'number' ? parseFloat(value) : value
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+            ? parseFloat(value)
+            : value,
     }));
   };
 
@@ -179,13 +189,15 @@ export default function AdminAuthSettingsPage() {
                       name="enableRegistration"
                       checked={authSettings.enableRegistration}
                       onCheckedChange={(checked) => {
-                        setAuthSettings(prev => ({
+                        setAuthSettings((prev) => ({
                           ...prev,
-                          enableRegistration: checked
+                          enableRegistration: checked,
                         }));
                       }}
                     />
-                    <Label htmlFor="enableRegistration">السماح بتسجيل مستخدمين جدد</Label>
+                    <Label htmlFor="enableRegistration">
+                      السماح بتسجيل مستخدمين جدد
+                    </Label>
                   </div>
 
                   <div className="flex items-center space-x-2 space-x-reverse">
@@ -194,13 +206,15 @@ export default function AdminAuthSettingsPage() {
                       name="requireEmailVerification"
                       checked={authSettings.requireEmailVerification}
                       onCheckedChange={(checked) => {
-                        setAuthSettings(prev => ({
+                        setAuthSettings((prev) => ({
                           ...prev,
-                          requireEmailVerification: checked
+                          requireEmailVerification: checked,
                         }));
                       }}
                     />
-                    <Label htmlFor="requireEmailVerification">طلب تأكيد البريد الإلكتروني</Label>
+                    <Label htmlFor="requireEmailVerification">
+                      طلب تأكيد البريد الإلكتروني
+                    </Label>
                   </div>
 
                   <div className="flex items-center space-x-2 space-x-reverse">
@@ -209,13 +223,15 @@ export default function AdminAuthSettingsPage() {
                       name="allowPasswordReset"
                       checked={authSettings.allowPasswordReset}
                       onCheckedChange={(checked) => {
-                        setAuthSettings(prev => ({
+                        setAuthSettings((prev) => ({
                           ...prev,
-                          allowPasswordReset: checked
+                          allowPasswordReset: checked,
                         }));
                       }}
                     />
-                    <Label htmlFor="allowPasswordReset">السماح بإعادة تعيين كلمة المرور</Label>
+                    <Label htmlFor="allowPasswordReset">
+                      السماح بإعادة تعيين كلمة المرور
+                    </Label>
                   </div>
                 </CardContent>
               </Card>
@@ -234,7 +250,9 @@ export default function AdminAuthSettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="minPasswordLength">الحد الأدنى لطول كلمة المرور</Label>
+                    <Label htmlFor="minPasswordLength">
+                      الحد الأدنى لطول كلمة المرور
+                    </Label>
                     <Input
                       id="minPasswordLength"
                       name="minPasswordLength"
@@ -253,13 +271,15 @@ export default function AdminAuthSettingsPage() {
                         name="requireUppercase"
                         checked={authSettings.requireUppercase}
                         onCheckedChange={(checked) => {
-                          setAuthSettings(prev => ({
+                          setAuthSettings((prev) => ({
                             ...prev,
-                            requireUppercase: checked
+                            requireUppercase: checked,
                           }));
                         }}
                       />
-                      <Label htmlFor="requireUppercase">تتطلب أحرفاً كبيرة</Label>
+                      <Label htmlFor="requireUppercase">
+                        تتطلب أحرفاً كبيرة
+                      </Label>
                     </div>
 
                     <div className="flex items-center space-x-2 space-x-reverse">
@@ -268,13 +288,15 @@ export default function AdminAuthSettingsPage() {
                         name="requireLowercase"
                         checked={authSettings.requireLowercase}
                         onCheckedChange={(checked) => {
-                          setAuthSettings(prev => ({
+                          setAuthSettings((prev) => ({
                             ...prev,
-                            requireLowercase: checked
+                            requireLowercase: checked,
                           }));
                         }}
                       />
-                      <Label htmlFor="requireLowercase">تتطلب أحرفاً صغيرة</Label>
+                      <Label htmlFor="requireLowercase">
+                        تتطلب أحرفاً صغيرة
+                      </Label>
                     </div>
 
                     <div className="flex items-center space-x-2 space-x-reverse">
@@ -283,9 +305,9 @@ export default function AdminAuthSettingsPage() {
                         name="requireNumbers"
                         checked={authSettings.requireNumbers}
                         onCheckedChange={(checked) => {
-                          setAuthSettings(prev => ({
+                          setAuthSettings((prev) => ({
                             ...prev,
-                            requireNumbers: checked
+                            requireNumbers: checked,
                           }));
                         }}
                       />
@@ -298,19 +320,23 @@ export default function AdminAuthSettingsPage() {
                         name="requireSpecialChars"
                         checked={authSettings.requireSpecialChars}
                         onCheckedChange={(checked) => {
-                          setAuthSettings(prev => ({
+                          setAuthSettings((prev) => ({
                             ...prev,
-                            requireSpecialChars: checked
+                            requireSpecialChars: checked,
                           }));
                         }}
                       />
-                      <Label htmlFor="requireSpecialChars">تتطلب رموز خاصة</Label>
+                      <Label htmlFor="requireSpecialChars">
+                        تتطلب رموز خاصة
+                      </Label>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="passwordExpirationDays">عدد أيام انتهاء صلاحية كلمات المرور (0 = لا تنتهي)</Label>
+                      <Label htmlFor="passwordExpirationDays">
+                        عدد أيام انتهاء صلاحية كلمات المرور (0 = لا تنتهي)
+                      </Label>
                       <Input
                         id="passwordExpirationDays"
                         name="passwordExpirationDays"
@@ -322,7 +348,10 @@ export default function AdminAuthSettingsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="passwordHistory">عدد كلمات المرور السابقة التي لا يمكن إعادة استخدامها (0 = غير محدود)</Label>
+                      <Label htmlFor="passwordHistory">
+                        عدد كلمات المرور السابقة التي لا يمكن إعادة استخدامها (0
+                        = غير محدود)
+                      </Label>
                       <Input
                         id="passwordHistory"
                         name="passwordHistory"
@@ -351,7 +380,9 @@ export default function AdminAuthSettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="sessionTimeout">مدة الجلسة بالثواني (الافتراضي: 86400 - 24 ساعة)</Label>
+                      <Label htmlFor="sessionTimeout">
+                        مدة الجلسة بالثواني (الافتراضي: 86400 - 24 ساعة)
+                      </Label>
                       <Input
                         id="sessionTimeout"
                         name="sessionTimeout"
@@ -363,7 +394,9 @@ export default function AdminAuthSettingsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="rememberMeDuration">مدة "تذكرني" بالأيام</Label>
+                      <Label htmlFor="rememberMeDuration">
+                        مدة "تذكرني" بالأيام
+                      </Label>
                       <Input
                         id="rememberMeDuration"
                         name="rememberMeDuration"
@@ -386,7 +419,8 @@ export default function AdminAuthSettingsPage() {
                     إعدادات خادم البريد الإلكتروني (SMTP)
                   </CardTitle>
                   <CardDescription>
-                    تكوين خادم SMTP لإرسال رسائل البريد الإلكتروني للتحقق وإعادة تعيين كلمة المرور
+                    تكوين خادم SMTP لإرسال رسائل البريد الإلكتروني للتحقق وإعادة
+                    تعيين كلمة المرور
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -440,7 +474,9 @@ export default function AdminAuthSettingsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="smtpFromEmail">البريد الإلكتروني المرسل</Label>
+                      <Label htmlFor="smtpFromEmail">
+                        البريد الإلكتروني المرسل
+                      </Label>
                       <Input
                         id="smtpFromEmail"
                         name="smtpFromEmail"
@@ -468,13 +504,15 @@ export default function AdminAuthSettingsPage() {
                       name="smtpSecure"
                       checked={authSettings.smtpSecure}
                       onCheckedChange={(checked) => {
-                        setAuthSettings(prev => ({
+                        setAuthSettings((prev) => ({
                           ...prev,
-                          smtpSecure: checked
+                          smtpSecure: checked,
                         }));
                       }}
                     />
-                    <Label htmlFor="smtpSecure">استخدام اتصال آمن (SSL/TLS)</Label>
+                    <Label htmlFor="smtpSecure">
+                      استخدام اتصال آمن (SSL/TLS)
+                    </Label>
                   </div>
                 </CardContent>
               </Card>
@@ -482,12 +520,12 @@ export default function AdminAuthSettingsPage() {
           </Tabs>
 
           <div className="flex justify-end">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSaving || saveAuthSettingsMutation.isPending}
               className="min-w-[120px]"
             >
-              {(isSaving || saveAuthSettingsMutation.isPending) ? (
+              {isSaving || saveAuthSettingsMutation.isPending ? (
                 <>
                   <Loader2 className="ml-2 h-4 w-4 animate-spin" />
                   جاري الحفظ...

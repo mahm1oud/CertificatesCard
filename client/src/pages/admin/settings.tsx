@@ -55,21 +55,19 @@ export default function AdminSettingsPage() {
     queryFn: getQueryFn({}),
   });
   
-  // جلب إعدادات العرض
+  // جلب إعدادات العرض من المسار الموحد
   const { data: displayData, isLoading: isDisplayLoading } = useQuery({
-    queryKey: ["/api/admin/settings/display"],
+    queryKey: ["/api/display-settings"],
     queryFn: getQueryFn({}),
   });
   
-  // حفظ إعدادات العرض
+  // حفظ إعدادات العرض باستخدام المسار الموحد
   const saveDisplaySettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/settings/display", data);
-      return res.json();
+      return await apiRequest("POST", "/api/display-settings", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/display"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/display"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/display-settings"] });
       toast({
         title: "تم حفظ إعدادات العرض بنجاح",
       });
@@ -86,8 +84,8 @@ export default function AdminSettingsPage() {
   // Save general settings mutation
   const saveGeneralSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/admin/settings/general", data);
-      return res.json();
+      const response = await apiRequest("PUT", "/api/admin/settings/general", data);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -107,8 +105,7 @@ export default function AdminSettingsPage() {
   // Save email settings mutation
   const saveEmailSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/admin/settings/email", data);
-      return res.json();
+      return await apiRequest("PUT", "/api/admin/settings/email", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -128,8 +125,7 @@ export default function AdminSettingsPage() {
   // Save storage settings mutation
   const saveStorageSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/admin/settings/storage", data);
-      return res.json();
+      return await apiRequest("PUT", "/api/admin/settings/storage", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -149,8 +145,7 @@ export default function AdminSettingsPage() {
   // Save security settings mutation
   const saveSecuritySettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/admin/settings/security", data);
-      return res.json();
+      return await apiRequest("PUT", "/api/admin/settings/security", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -170,8 +165,7 @@ export default function AdminSettingsPage() {
   // Clear cache mutation
   const clearCacheMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/maintenance/clear-cache");
-      return res.json();
+      return await apiRequest("POST", "/api/admin/maintenance/clear-cache");
     },
     onSuccess: () => {
       toast({
@@ -190,8 +184,7 @@ export default function AdminSettingsPage() {
   // Purge uploads mutation
   const purgeUploadsMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/maintenance/purge-uploads");
-      return res.json();
+      return await apiRequest("POST", "/api/admin/maintenance/purge-uploads");
     },
     onSuccess: () => {
       toast({
@@ -210,8 +203,7 @@ export default function AdminSettingsPage() {
   // Restart server mutation
   const restartServerMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/maintenance/restart-server");
-      return res.json();
+      return await apiRequest("POST", "/api/admin/maintenance/restart-server");
     },
     onSuccess: () => {
       toast({
@@ -231,8 +223,7 @@ export default function AdminSettingsPage() {
   // Testing email mutation
   const testEmailMutation = useMutation({
     mutationFn: async (email: string) => {
-      const res = await apiRequest("POST", "/api/admin/settings/test-email", { email });
-      return res.json();
+      return await apiRequest("POST", "/api/admin/settings/test-email", { email });
     },
     onSuccess: () => {
       toast({
@@ -316,6 +307,7 @@ export default function AdminSettingsPage() {
   // حفظ إعدادات العرض
   const handleDisplaySubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting display settings:', displaySettings);
     saveDisplaySettingsMutation.mutate(displaySettings);
   };
   

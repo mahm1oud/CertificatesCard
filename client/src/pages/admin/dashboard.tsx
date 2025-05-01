@@ -70,20 +70,17 @@ export default function AdminDashboardPage() {
     queryFn: getQueryFn({}),
   });
 
-  // Fetch display settings
+  // استخدام المسار الموحد لجلب إعدادات العرض
   useEffect(() => {
     async function fetchDisplaySettings() {
       try {
-        const response = await fetch('/api/display');
-        if (response.ok) {
-          const data = await response.json();
-          setDisplaySettings(data.settings || {
-            displayMode: "multi",
-            templateViewMode: "multi-page",
-            enableSocialFormats: true,
-            defaultSocialFormat: "instagram"
-          });
-        }
+        const data = await apiRequest('GET', '/api/display-settings');
+        setDisplaySettings(data.settings || {
+          displayMode: "multi",
+          templateViewMode: "multi-page",
+          enableSocialFormats: true,
+          defaultSocialFormat: "instagram"
+        });
       } catch (error) {
         console.error('Error fetching display settings:', error);
       } finally {
@@ -94,13 +91,10 @@ export default function AdminDashboardPage() {
     fetchDisplaySettings();
   }, []);
 
-  // Save display settings
+  // حفظ إعدادات العرض باستخدام المسار الموحد
   const saveDisplaySettingsMutation = useMutation({
     mutationFn: async (settings: typeof displaySettings) => {
-      return await apiRequest('/api/admin/settings/display', {
-        method: 'POST',
-        body: { settings }
-      });
+      return await apiRequest('POST', '/api/display-settings', settings);
     },
     onSuccess: () => {
       toast({

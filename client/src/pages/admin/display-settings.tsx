@@ -30,9 +30,9 @@ export default function AdminDisplaySettingsPage() {
   const [enableSocialFormats, setEnableSocialFormats] = useState(true);
   const [defaultSocialFormat, setDefaultSocialFormat] = useState("instagram");
   
-  // Fetch display settings
+  // Fetch display settings - استخدام المسار الموحد
   const { data: displaySettings, isLoading } = useQuery({
-    queryKey: ["/api/display"],
+    queryKey: ["/api/display-settings"],
     queryFn: getQueryFn({}),
     onSuccess: (data) => {
       if (data?.settings) {
@@ -44,14 +44,14 @@ export default function AdminDisplaySettingsPage() {
     }
   });
   
-  // Update settings mutation
+  // Update settings mutation - استخدام المسار الموحد للمشرفين
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/admin/display-settings", data);
+      return apiRequest("POST", "/api/display-settings", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["/api/display"],
+        queryKey: ["/api/display-settings"],
       });
       toast({
         title: "تم الحفظ",

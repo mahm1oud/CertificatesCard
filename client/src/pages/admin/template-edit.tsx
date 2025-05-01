@@ -228,13 +228,13 @@ export default function TemplateEditPage() {
     try {
       const formDataToSend = new FormData();
       
-      // Add template data as JSON
+      // Add template data as JSON - حذف الحقول الآلية
       formDataToSend.append('templateData', JSON.stringify({
         title: formData.title,
         titleAr: formData.titleAr,
-        slug: formData.slug || formData.title.toLowerCase().replace(/\s+/g, '-'),
+        // سيتم إنشاء slug تلقائيًا في الخادم - تم إزالة الحقل
         categoryId: parseInt(formData.categoryId.toString()), // تأكد من تحويله إلى رقم
-        displayOrder: parseInt(formData.displayOrder.toString()), // تأكد من تحويله إلى رقم
+        // سيتم تعيين displayOrder تلقائيًا في الخادم - تم إزالة الحقل
         active: Boolean(formData.active), // تأكد من تحويله إلى قيمة منطقية
         settings: formData.settings || {},
         fields: Array.isArray(formData.fields) ? formData.fields : [],
@@ -350,19 +350,7 @@ export default function TemplateEditPage() {
                   />
                 </div>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="slug">المعرف (slug)</Label>
-                  <Input
-                    id="slug"
-                    name="slug"
-                    value={formData.slug || ''}
-                    onChange={handleInputChange}
-                    placeholder="سيتم إنشاؤه تلقائيًا إذا تركته فارغًا"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    سيظهر في عنوان URL، استخدم الحروف الإنجليزية والأرقام والشرطة فقط
-                  </p>
-                </div>
+                {/* تم إخفاء حقل المعرف حيث سيتم إنشاؤه تلقائيًا من العنوان */}
                 
                 <div className="grid gap-2">
                   <Label htmlFor="category">التصنيف</Label>
@@ -389,17 +377,7 @@ export default function TemplateEditPage() {
                   )}
                 </div>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="displayOrder">ترتيب العرض</Label>
-                  <Input
-                    id="displayOrder"
-                    name="displayOrder"
-                    type="number"
-                    value={formData.displayOrder}
-                    onChange={handleInputChange}
-                    min="0"
-                  />
-                </div>
+                {/* تم إخفاء حقل ترتيب العرض حيث سيتم تعيينه تلقائيًا */}
                 
                 <div className="flex items-center gap-2">
                   <Switch
