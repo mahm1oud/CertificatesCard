@@ -6,7 +6,9 @@ export interface Signature {
   name: string;
   imageUrl: string;
   userId: number;
+  type: string; // 'signature' or 'stamp'
   createdAt: string;
+  isActive: boolean;
 }
 
 /**

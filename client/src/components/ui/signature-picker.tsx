@@ -194,7 +194,9 @@ export function SignaturePicker({
               <div className="text-center p-8">جاري التحميل...</div>
             ) : signatures.data && signatures.data.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
-                {signatures.data.map((signature) => (
+                {signatures.data
+                  .filter(signature => signature.type === signatureType)
+                  .map((signature) => (
                   <Card 
                     key={signature.id} 
                     className={cn(
