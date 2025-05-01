@@ -27,6 +27,7 @@ import cardsRouter from './api/cards';
 import layersRouter from './api/layers';
 import logosRouter from './api/logos';
 import signaturesRouter from './api/signatures';
+import { createHealthCheckRouter } from './lib/health-check';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup directory structure
@@ -2660,6 +2661,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/layers', layersRouter);
   app.use('/api/logos', logosRouter);
   app.use('/api/signatures', signaturesRouter);
+  
+  // إضافة مسار فحص صحة النظام
+  app.use(createHealthCheckRouter());
 
   // Create HTTP server
   const httpServer = createServer(app);

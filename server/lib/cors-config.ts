@@ -1,77 +1,64 @@
 /**
- * تكوين CORS لدعم استضافة الواجهة الأمامية والخلفية على نطاقات مختلفة
- * هذا الملف يتيح ضبط النطاقات المسموح لها بالوصول إلى API
+ * تكوين CORS للسماح بالطلبات من أصول مختلفة
+ * 
+ * هذا الملف يوفر تكوينًا مرنًا لـ CORS يعتمد على بيئة التشغيل
+ * ويدعم قائمة من الأصول المسموح بها من خلال متغير البيئة ALLOWED_ORIGINS
  */
 
-import { CorsOptions } from 'cors';
-
-/**
- * الحصول على النطاقات المسموح بها من متغيرات البيئة
- * يدعم قائمة من النطاقات مفصولة بفواصل
- * @returns مصفوفة من النطاقات المسموح بها
- */
-export function getAllowedOrigins(): string[] {
-  const allowedOriginsStr = process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173';
-  return allowedOriginsStr.split(',').map(origin => origin.trim());
-}
+import cors from 'cors';
+import { logger } from './logger';
 
 /**
- * إنشاء خيارات CORS بناءً على النطاقات المسموح بها
- * @returns خيارات CORS
+ * إنشاء تكوين CORS بناءً على متغيرات البيئة
+ * 
+ * @returns تكوين CORS الذي يمكن استخدامه مع middleware في Express
  */
-export function createCorsOptions(): CorsOptions {
-  const allowedOrigins = getAllowedOrigins();
+export function createCorsConfig() {
+  // استخراج الأصول المسموح بها من متغير البيئة
+  const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || '';
   
-  return {
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      // السماح بالطلبات بدون أصل (مثل الطلبات من المتصفح مباشرة أو من بوستمان)
+  // تحويل متغير البيئة إلى مصفوفة من الأصول المسموح بها
+  const allowedOrigins = allowedOriginsEnv
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(origin => origin.length > 0);
+  
+  // إضافة أصول إضافية في بيئة التطوير
+  if (process.env.NODE_ENV === 'development') {
+    allowedOrigins.push(
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'http://localhost:5173'
+    );
+  }
+  
+  // تسجيل الأصول المسموح بها
+  logger.info(`CORS is configured with the following allowed origins: ${allowedOrigins.join(', ')}`);
+  
+  // إنشاء تكوين CORS
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      // السماح بطلبات بدون أصل (مثل طلبات API المباشرة)
       if (!origin) {
-        return callback(null, true);
+        callback(null, true);
+        return;
       }
       
-      // التحقق مما إذا كان الأصل مسموحًا به
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      // التحقق مما إذا كان الأصل موجودًا في القائمة المسموح بها
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         callback(null, true);
       } else {
-        console.warn(`CORS: Origin ${origin} not allowed`);
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        logger.warn(`Request from blocked origin: ${origin}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
       }
     },
-    credentials: true, // السماح بإرسال ملفات تعريف الارتباط
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    credentials: true, // السماح بإرسال البيانات المصادقة (الكوكيز)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    maxAge: 86400 // تخزين مؤقت لنتائج preflight لمدة 24 ساعة
   };
+  
+  return corsOptions;
 }
 
-/**
- * التحقق من صحة تكوين CORS
- * هذه الدالة تطبع رسائل تحذير إذا كانت هناك مشاكل في تكوين CORS
- */
-export function validateCorsConfig(): void {
-  const allowedOrigins = getAllowedOrigins();
-  
-  if (allowedOrigins.length === 0) {
-    console.warn('⚠️ CORS Warning: No allowed origins specified.');
-  }
-  
-  if (allowedOrigins.includes('*') && process.env.NODE_ENV === 'production') {
-    console.warn('⚠️ CORS Warning: Wildcard origin (*) is used in production environment.');
-  }
-  
-  // التحقق من وجود نطاقات غير صالحة
-  const invalidOrigins = allowedOrigins.filter(origin => {
-    if (origin === '*') return false;
-    try {
-      new URL(origin);
-      return false;
-    } catch (e) {
-      return true;
-    }
-  });
-  
-  if (invalidOrigins.length > 0) {
-    console.warn(`⚠️ CORS Warning: Invalid origins detected: ${invalidOrigins.join(', ')}`);
-  }
-  
-  console.log(`🔒 CORS: Allowed origins: ${allowedOrigins.join(', ')}`);
-}
+export default createCorsConfig;
