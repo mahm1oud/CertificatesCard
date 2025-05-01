@@ -1,0 +1,14 @@
+{
+  "allowedMimeTypes": {
+    "images": ["image/jpeg", "image/png", "image/gif", "image/svg+xml"],
+    "logos": ["image/jpeg", "image/png", "image/svg+xml"],
+    "signatures": ["image/jpeg", "image/png", "image/svg+xml"],
+    "documents": ["application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"]
+  },
+  "maxFileSizes": {
+    "images": 5242880,
+    "logos": 2097152,
+    "signatures": 1048576,
+    "documents": 10485760
+  }
+}
