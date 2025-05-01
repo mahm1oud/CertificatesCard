@@ -167,12 +167,11 @@ export interface IStorage {
   updateUserSignature(id: number, data: Partial<InsertUserSignature>): Promise<UserSignature | undefined>;
   deleteUserSignature(id: number): Promise<boolean>;
   
-  // Settings methods - إعدادات النظام
+  // System Settings methods - إعدادات النظام
   getSettings(category: string): Promise<any>;
-  getSettingsByCategory(category: string): Promise<{key: string, value: any}[]>;
   updateSettings(category: string, settings: any): Promise<boolean>;
-  getSetting(category: string, key: string): Promise<any>;
-  updateSetting(category: string, key: string, value: any): Promise<boolean>;
+  getSettingValue(category: string, key: string): Promise<any>;
+  updateSettingValue(category: string, key: string, value: any): Promise<boolean>;
 }
 
 // Database storage implementation
@@ -262,7 +261,7 @@ export class DatabaseStorage implements IStorage {
           await this.createCategory(category);
         }
         
-        // Add admin user with the required password
+        // Add admin user with the required password (700700)
         const hashedPassword = await hashPassword('700700');
         
         const adminUser: InsertUser = {
