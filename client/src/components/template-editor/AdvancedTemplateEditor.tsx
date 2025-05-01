@@ -374,7 +374,7 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
                 </CardHeader>
                 
                 <CardContent>
-                  <div className="space-y-2 max-h-[500px] overflow-auto">
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
                     {fields.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         لا توجد حقول بعد
