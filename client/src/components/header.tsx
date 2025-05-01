@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { forwardRef } from "react";
+import ThemeToggle from "./theme-toggle";
 
 const ListItem = forwardRef<
   React.ElementRef<"a">,
@@ -177,8 +178,9 @@ export default function Header() {
                       <div className="px-2 py-1.5">
                         <p className="text-xs text-muted-foreground">الإعدادات</p>
                       </div>
-                      <div className="px-4 py-2">
+                      <div className="flex items-center px-4 py-2 justify-between">
                         <LanguageSwitcher />
+                        <ThemeToggle />
                       </div>
                       <Separator className="my-2" />
                       <SheetClose asChild>
@@ -238,8 +240,9 @@ export default function Header() {
                           </Link>
                         </Button>
                       </SheetClose>
-                      <div className="px-4 py-2">
+                      <div className="flex items-center px-4 py-2 justify-between">
                         <LanguageSwitcher />
+                        <ThemeToggle />
                       </div>
                     </>
                   )}
@@ -339,6 +342,7 @@ export default function Header() {
           </nav>
         </div>
         <div className="hidden md:flex items-center mr-auto space-x-4 space-x-reverse">
+          <ThemeToggle />
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
