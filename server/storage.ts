@@ -1572,55 +1572,33 @@ export class DatabaseStorage implements IStorage {
   }
   
   // إعدادات النظام - System Settings
+  // هذه الدالة موجودة ومنفذة في مكان آخر
+  // This function is now implemented elsewhere
+  
+  // Legacy function - uses the replacement implemented above
   async getSettings(category: string): Promise<any> {
     try {
-      const settings: Record<string, any> = {};
-      const settingsData = await this.getSettingsByCategory(category);
+      const settingsArray = await this.getSettingsByCategory(category);
       
-      if (settingsData && settingsData.length > 0) {
-        for (const setting of settingsData) {
-          if (setting.key && setting.value !== undefined) {
-            try {
-              // محاولة تحليل القيمة كـ JSON إذا كانت مخزنة كنص
-              if (typeof setting.value === 'string' && (
-                setting.value.startsWith('{') || 
-                setting.value.startsWith('[') ||
-                setting.value === 'true' || 
-                setting.value === 'false' || 
-                !isNaN(Number(setting.value))
-              )) {
-                settings[setting.key] = JSON.parse(setting.value);
-              } else {
-                settings[setting.key] = setting.value;
-              }
-            } catch (e) {
-              // إذا فشل التحليل، استخدم القيمة كما هي
-              settings[setting.key] = setting.value;
-            }
+      // Transform the array to an object
+      const settingsObject: Record<string, any> = {};
+      for (const setting of settingsArray) {
+        let value = setting.value;
+        // Try to parse if it's a string that looks like JSON
+        if (typeof value === 'string') {
+          try {
+            value = JSON.parse(value);
+          } catch (e) {
+            // Not JSON, keep as is
           }
         }
+        settingsObject[setting.key] = value;
       }
       
-      return settings;
+      return settingsObject;
     } catch (error) {
       console.error(`Error retrieving settings for category ${category}:`, error);
       return {};
-    }
-  }
-  
-  async getSettingsByCategory(category: string): Promise<{key: string, value: any}[]> {
-    try {
-      // استخدام جدول الإعدادات لاسترجاع جميع الإعدادات في فئة معينة
-      const query = `SELECT key, value FROM settings WHERE category = '${category}'`;
-      const result = await db.execute(query);
-        
-      return result.rows.map((row: any) => ({
-        key: row.key,
-        value: row.value
-      }));
-    } catch (error) {
-      console.error(`Error retrieving settings for category ${category}:`, error);
-      return [];
     }
   }
   
@@ -1628,7 +1606,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // تحديث أو إضافة كل إعداد
       for (const [key, value] of Object.entries(data)) {
-        await this.updateSetting(category, key, value);
+        await this.updateSettingValue(category, key, value);
       }
       return true;
     } catch (error) {
