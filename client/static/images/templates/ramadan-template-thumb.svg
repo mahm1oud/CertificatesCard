@@ -1,0 +1,12 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#002C59" />
+  <rect x="50" y="50" width="700" height="500" rx="10" fill="#00275100" stroke="#ffcc2f" stroke-width="3" />
+  <circle cx="400" cy="160" r="80" fill="#00275100" stroke="#ffcc2f" stroke-width="2" />
+  <path d="M400 100 L400 80 M430 109 L443 93 M456 140 L476 140 M430 171 L443 187 M400 180 L400 200 M370 171 L357 187 M344 140 L324 140 M370 109 L357 93" stroke="#ffcc2f" stroke-width="2" />
+  <path d="M375 140 A25 25 0 1 0 425 140 A60 60 0 1 1 375 140" fill="#ffcc2f" />
+  <text x="400" y="300" font-family="Arial" font-size="32" text-anchor="middle" fill="#ffcc2f">رمضان كريم</text>
+  <text x="400" y="340" font-family="Arial" font-size="18" text-anchor="middle" fill="#ffffff">من المرسل إلى المستلم</text>
+  <text x="400" y="380" font-family="Arial" font-size="16" text-anchor="middle" fill="#ffffff">أعاده الله عليكم باليمن والبركات</text>
+  <text x="400" y="410" font-family="Arial" font-size="16" text-anchor="middle" fill="#ffffff">كل عام وأنتم بخير</text>
+  <path d="M300 470 Q350 440, 400 470 T500 470" stroke="#ffcc2f" stroke-width="2" fill="none" />
+</svg>

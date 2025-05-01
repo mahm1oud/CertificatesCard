@@ -1,0 +1,15 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#f0f4f8" />
+  <rect x="50" y="50" width="700" height="500" rx="10" fill="#ffffff" stroke="#5e35b1" stroke-width="3" />
+  <path d="M250 150 C300 100, 350 200, 400 120 C450 200, 500 100, 550 150" stroke="#5e35b1" stroke-width="2" fill="none" />
+  <circle cx="400" cy="230" r="70" fill="#5e35b100" stroke="#5e35b1" stroke-width="2" />
+  <path d="M380 200 L390 180 L400 200 L410 180 L420 200 Z" fill="#5e35b1" />
+  <path d="M400 200 L400 230" stroke="#5e35b1" stroke-width="2" />
+  <path d="M400 220 L380 250 M400 220 L420 250" stroke="#5e35b1" stroke-width="2" />
+  <text x="400" y="170" font-family="Arial" font-size="32" text-anchor="middle" fill="#5e35b1">عيد مبارك</text>
+  <text x="400" y="350" font-family="Arial" font-size="20" text-anchor="middle" fill="#5e35b1">تهنئة من</text>
+  <text x="400" y="380" font-family="Arial" font-size="16" text-anchor="middle" fill="#5e35b1">المرسل</text>
+  <text x="400" y="420" font-family="Arial" font-size="20" text-anchor="middle" fill="#5e35b1">إلى</text>
+  <text x="400" y="450" font-family="Arial" font-size="16" text-anchor="middle" fill="#5e35b1">المستلم</text>
+  <path d="M250 500 C300 450, 350 550, 400 470 C450 550, 500 450, 550 500" stroke="#5e35b1" stroke-width="2" fill="none" />
+</svg>
