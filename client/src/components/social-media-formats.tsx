@@ -147,7 +147,7 @@ export const SocialMediaFormats: React.FC<SocialMediaFormatsProps> = ({
           
           {Object.keys(formats).map((formatKey) => (
             <TabsContent key={formatKey} value={formatKey}>
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col md:flex-row gap-4 max-h-[500px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 p-1">
                 <div className="flex-1">
                   <div className="bg-muted p-3 rounded-md">
                     <div className="text-sm mb-1">{formats[formatKey].description}</div>

@@ -55,9 +55,13 @@ import {
   Layers,
   Grid,
   Text as TextIcon,
-  ChevronsUpDown
+  ChevronsUpDown,
+  MoveUp,
+  MoveDown,
+  GripVertical
 } from "lucide-react";
 import { useForm } from 'react-hook-form';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useToast } from '@/hooks/use-toast';
 
 // ثابت العرض المرجعي - يجب أن يكون متطابقًا مع جميع مكونات النظام
@@ -175,38 +179,54 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
   };
   
   // إضافة حقل جديد
-  const handleAddField = (type: 'text' | 'image') => {
+  const handleAddField = (type: 'text' | 'image' | 'dropdown' | 'radio' = 'text') => {
     // إيجاد أعلى معرّف
     const maxId = fields.length > 0 ? Math.max(...fields.map(f => f.id)) : 0;
     
     // إنشاء حقل جديد
     const newField: FieldType = {
       id: maxId + 1,
-      name: type === 'text' ? `text_field_${maxId + 1}` : `image_field_${maxId + 1}`,
-      label: type === 'text' ? 'نص جديد' : '',
-      labelAr: type === 'text' ? 'نص جديد' : '',
+      name: type === 'image' ? `image_field_${maxId + 1}` 
+            : type === 'dropdown' ? `dropdown_field_${maxId + 1}`
+            : type === 'radio' ? `radio_field_${maxId + 1}`
+            : `text_field_${maxId + 1}`,
+      label: type === 'image' ? '' 
+            : type === 'dropdown' ? 'قائمة منسدلة' 
+            : type === 'radio' ? 'اختيار متعدد' 
+            : 'نص جديد',
+      labelAr: type === 'image' ? '' 
+              : type === 'dropdown' ? 'قائمة منسدلة' 
+              : type === 'radio' ? 'اختيار متعدد' 
+              : 'نص جديد',
       type,
       position: { x: 50, y: 50 }, // وضع في وسط القالب
       templateId: template?.id,
       required: false,
-      style: type === 'text' 
+      style: type === 'image' 
         ? {
+            imageMaxWidth: 150,
+            imageMaxHeight: 150,
+            imageBorder: false,
+            imageRounded: false
+          }
+        : {
             fontFamily: 'Cairo',
             fontSize: 24,
             fontWeight: 'normal',
             color: '#000000',
             align: 'center',
             maxWidth: 300
-          }
-        : {
-            imageMaxWidth: 150,
-            imageMaxHeight: 150,
-            imageBorder: false,
-            imageRounded: false
           },
       zIndex: fields.length + 1, // طبقة أعلى من كل الحقول الموجودة
       visible: true,
-      rotation: 0
+      rotation: 0,
+      options: (type === 'dropdown' || type === 'radio') 
+        ? [
+            { value: 'option1', label: 'الخيار الأول' },
+            { value: 'option2', label: 'الخيار الثاني' },
+            { value: 'option3', label: 'الخيار الثالث' }
+          ] 
+        : []
     };
     
     setFields([...fields, newField]);
@@ -374,44 +394,112 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
                 </CardHeader>
                 
                 <CardContent>
-                  <div className="space-y-2 max-h-[500px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
+                  <div className="max-h-[500px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pr-1">
                     {fields.length === 0 ? (
                       <div className="text-center py-8 text-gray-500">
                         لا توجد حقول بعد
                       </div>
                     ) : (
-                      fields
-                        .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)) // ترتيب حسب الطبقة
-                        .map((field) => (
-                          <div
-                            key={field.id}
-                            className={`p-2 rounded-md flex items-center cursor-pointer ${
-                              selectedField?.id === field.id
-                                ? 'bg-primary/20'
-                                : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
-                            onClick={() => setSelectedField(field)}
-                          >
-                            {field.type === 'text' ? (
-                              <TextIcon className="w-5 h-5 ml-2" />
-                            ) : (
-                              <Image className="w-5 h-5 ml-2" />
-                            )}
-                            <div className="flex-1 ml-2 text-sm">
-                              <div className="font-medium truncate">
-                                {field.label || field.name}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {field.name}
-                              </div>
+                      <DragDropContext
+                        onDragEnd={(result) => {
+                          if (!result.destination) return;
+                          
+                          // إعادة ترتيب الحقول مع تحديث قيم zIndex
+                          const items = Array.from(fields)
+                            .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+                          const [removed] = items.splice(result.source.index, 1);
+                          items.splice(result.destination.index, 0, removed);
+                          
+                          // تحديث zIndex لكل حقل حسب ترتيبه الجديد
+                          const updatedFields = items.map((item, index) => ({
+                            ...item,
+                            zIndex: index + 1
+                          }));
+                          
+                          setFields(updatedFields);
+                          
+                          // تحديث الحقل المحدد إذا كان هو الذي تم سحبه
+                          if (selectedField && removed.id === selectedField.id) {
+                            const updatedSelectedField = updatedFields.find(
+                              (f) => f.id === selectedField.id
+                            );
+                            if (updatedSelectedField) {
+                              setSelectedField(updatedSelectedField);
+                            }
+                          }
+                        }}
+                      >
+                        <Droppable droppableId="fields-list">
+                          {(provided) => (
+                            <div
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className="space-y-2"
+                            >
+                              {fields
+                                .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+                                .map((field, index) => (
+                                  <Draggable
+                                    key={field.id.toString()}
+                                    draggableId={field.id.toString()}
+                                    index={index}
+                                  >
+                                    {(provided) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        className={`p-2 rounded-md flex items-center ${
+                                          selectedField?.id === field.id
+                                            ? 'bg-primary/20'
+                                            : 'bg-gray-100 hover:bg-gray-200'
+                                        }`}
+                                      >
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          className="cursor-move mr-1"
+                                          title="سحب لإعادة الترتيب"
+                                        >
+                                          <GripVertical className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                        
+                                        <div
+                                          className="flex-1 flex items-center cursor-pointer"
+                                          onClick={() => setSelectedField(field)}
+                                        >
+                                          {field.type === 'text' ? (
+                                            <TextIcon className="w-5 h-5 ml-2" />
+                                          ) : (
+                                            <Image className="w-5 h-5 ml-2" />
+                                          )}
+                                          <div className="flex-1 ml-2 text-sm">
+                                            <div className="font-medium truncate">
+                                              {field.label || field.name}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                              {field.name}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center">
+                                          {field.visible === false && (
+                                            <span className="text-xs bg-red-100 text-red-800 px-1 rounded mr-2">
+                                              مخفي
+                                            </span>
+                                          )}
+                                          <div className="text-xs bg-gray-100 px-1 rounded">
+                                            {field.zIndex || index + 1}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                ))}
+                              {provided.placeholder}
                             </div>
-                            {field.visible === false && (
-                              <span className="text-xs bg-red-100 text-red-800 px-1 rounded">
-                                مخفي
-                              </span>
-                            )}
-                          </div>
-                        ))
+                          )}
+                        </Droppable>
+                      </DragDropContext>
                     )}
                   </div>
                 </CardContent>
@@ -435,6 +523,24 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
                       >
                         <Image className="w-4 h-4 ml-1" />
                         حقل صورة
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        onClick={() => handleAddField('dropdown')}
+                        size="sm"
+                      >
+                        <ChevronsUpDown className="w-4 h-4 ml-1" />
+                        قائمة منسدلة
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        onClick={() => handleAddField('radio')}
+                        size="sm"
+                      >
+                        <List className="w-4 h-4 ml-1" />
+                        اختيارات متعددة
                       </Button>
                     </div>
                   </CardFooter>
