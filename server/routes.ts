@@ -1725,6 +1725,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // PUT /api/admin/template-fields/:templateId/order - تحديث ترتيب حقول القالب
+  app.put("/api/admin/template-fields/:templateId/order", isAdmin, async (req, res) => {
+    try {
+      const { templateId } = req.params;
+      const { fields } = req.body;
+      
+      if (isNaN(parseInt(templateId))) {
+        return res.status(400).json({ message: "رقم القالب غير صالح" });
+      }
+      
+      if (!Array.isArray(fields) || fields.length === 0) {
+        return res.status(400).json({ message: "البيانات المرسلة غير صالحة" });
+      }
+      
+      // التحقق من وجود القالب
+      const template = await storage.getTemplate(parseInt(templateId));
+      
+      if (!template) {
+        return res.status(404).json({ message: "القالب غير موجود" });
+      }
+      
+      // تحديث ترتيب الحقول
+      for (const field of fields) {
+        if (!field.id || isNaN(parseInt(field.id.toString()))) {
+          continue;
+        }
+        
+        await storage.updateTemplateField(parseInt(field.id.toString()), {
+          displayOrder: field.displayOrder
+        });
+      }
+      
+      res.json({ message: "تم تحديث ترتيب الحقول بنجاح" });
+    } catch (error) {
+      console.error("Error updating template field order:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء تحديث ترتيب الحقول" });
+    }
+  });
+  
   // Get template fields (public - no auth required)
   app.get("/api/templates/:templateId/fields", async (req, res) => {
     try {

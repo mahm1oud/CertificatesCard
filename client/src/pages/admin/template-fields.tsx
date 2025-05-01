@@ -12,9 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Plus, Minus, Trash2, ChevronUp, ChevronDown, Loader2, Copy, Move, PanelLeft, Image as ImageIcon } from "lucide-react";
+import { Plus, Minus, Trash2, ChevronUp, ChevronDown, Loader2, Copy, Move, PanelLeft, Image as ImageIcon, ListOrdered } from "lucide-react";
 import { CopyFieldsDialog } from "@/components/template-editor/CopyFieldsDialog";
 import { FieldsPositionEditor } from "@/components/template-editor/FieldsPositionEditor";
+import { SortableFieldsList } from "@/components/sortable/SortableFieldsList";
 
 type TextShadow = {
   enabled: boolean;
@@ -85,6 +86,7 @@ export default function TemplateFieldsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
   const [positionEditorOpen, setPositionEditorOpen] = useState(false);
+  const [sortableListOpen, setSortableListOpen] = useState(false);
   const [editingField, setEditingField] = useState<number | null>(null);
   const [newOption, setNewOption] = useState("");
   
@@ -423,6 +425,39 @@ export default function TemplateFieldsPage() {
     }));
   };
   
+  // Mutation for updating field order
+  const updateFieldOrdersMutation = useMutation({
+    mutationFn: async (updatedFields: any[]) => {
+      // ترتيب الحقول حسب خاصية displayOrder
+      const fieldsWithUpdatedOrders = updatedFields.map((field, index) => ({
+        id: field.id,
+        displayOrder: index
+      }));
+      
+      return apiRequest('PUT', `/api/admin/template-fields/${templateId}/order`, {
+        fields: fieldsWithUpdatedOrders
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم تحديث ترتيب الحقول بنجاح"
+      });
+      refetchFields();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "حدث خطأ",
+        description: error.message || "حدث خطأ أثناء تحديث ترتيب الحقول",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // معالجة حفظ ترتيب الحقول
+  const handleSaveFieldOrder = (orderedFields: TemplateField[]) => {
+    updateFieldOrdersMutation.mutate(orderedFields);
+  };
+  
   if (isTemplateLoading || isFieldsLoading) {
     return (
       <div className="container py-8 flex justify-center">
@@ -467,6 +502,14 @@ export default function TemplateFieldsPage() {
             <Move className="h-4 w-4" />
             تعديل مواضع الحقول
           </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setSortableListOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <ListOrdered className="h-4 w-4" />
+            ترتيب الحقول
+          </Button>
           <Button onClick={handleAddField}>إضافة حقل جديد</Button>
         </div>
       </div>
@@ -477,6 +520,16 @@ export default function TemplateFieldsPage() {
         onOpenChange={setCopyDialogOpen}
         sourceTemplateId={parseInt(templateId as string)}
         onSuccess={refetchFields}
+      />
+      
+      {/* مربع حوار ترتيب الحقول */}
+      <SortableFieldsList
+        isOpen={sortableListOpen}
+        onClose={() => setSortableListOpen(false)}
+        fields={fields}
+        onSave={handleSaveFieldOrder}
+        title="ترتيب حقول القالب"
+        description="قم بسحب وإفلات الحقول لتغيير ترتيبها، أو استخدم الأسهم لتحريك الحقول لأعلى أو لأسفل."
       />
       
       <div className="grid md:grid-cols-2 gap-8">
