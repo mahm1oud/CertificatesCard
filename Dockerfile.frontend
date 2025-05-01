@@ -1,32 +1,32 @@
-FROM node:18-alpine AS builder
+# Stage 1: Build frontend application
+FROM node:18-alpine AS build
 
-# إنشاء مجلد التطبيق
 WORKDIR /app
 
-# نسخ ملفات إدارة الحزم
-COPY client/package*.json ./
+# Copying package.json and package-lock.json to leverage Docker cache
+COPY package*.json ./
+COPY client/package*.json ./client/
 
-# تثبيت الحزم
-RUN npm install
+# Install dependencies
+RUN npm ci --quiet
 
-# نسخ ملفات المشروع
-COPY client/ ./
-COPY shared/ ../shared/
+# Copy the rest of the application code
+COPY . .
 
-# بناء التطبيق
-RUN npm run build
+# Build the frontend application
+RUN cd client && npm run build
 
-# المرحلة الثانية - تشغيل التطبيق باستخدام Nginx
-FROM nginx:alpine
+# Stage 2: Serve frontend using Nginx
+FROM nginx:stable-alpine
 
-# نسخ ملفات البناء من المرحلة السابقة
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Copy custom Nginx configuration
+COPY ./scripts/nginx.conf /etc/nginx/conf.d/default.conf
 
-# تكوين Nginx
-COPY scripts/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy built frontend files
+COPY --from=build /app/client/dist /usr/share/nginx/html
 
-# تعريض المنفذ 80
+# Expose port 80
 EXPOSE 80
 
-# تشغيل Nginx
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
