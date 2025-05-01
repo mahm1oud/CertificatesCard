@@ -1637,7 +1637,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async getSetting(category: string, key: string): Promise<any> {
+  async getSettingValue(category: string, key: string): Promise<any> {
     try {
       const query = `SELECT value FROM settings WHERE category = '${category}' AND key = '${key}'`;
       const result = await db.execute(query);
@@ -1662,7 +1662,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateSetting(category: string, key: string, value: any): Promise<boolean> {
+  async updateSettingValue(category: string, key: string, value: any): Promise<boolean> {
     try {
       // تحويل القيمة إلى JSON إذا كانت كائن أو مصفوفة
       const valueToStore = typeof value === 'object' ? JSON.stringify(value) : String(value);
