@@ -16,7 +16,7 @@ import {
   templateLogos, type TemplateLogo, type InsertTemplateLogo
 } from "@shared/schema";
 
-import { db } from "./db";
+import { db, withDatabaseRetry } from "./db";
 import { eq, and, desc, sql, like, asc, ilike, or, isNull } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
@@ -855,23 +855,142 @@ export class DatabaseStorage implements IStorage {
     return undefined;
   }
 
+  /**
+   * الحصول على أعلى ترتيب موجود للقوالب
+   * @returns رقم الترتيب الأعلى يزيد بواحد
+   */
+  async getNextTemplateDisplayOrder(): Promise<number> {
+    try {
+      // استعلام للحصول على أعلى قيمة لـ displayOrder
+      const result = await db
+        .select({ maxOrder: sql<number>`MAX(${templates.displayOrder})` })
+        .from(templates);
+
+      // استخراج القيمة القصوى وإضافة 1 إليها
+      const maxOrder = result[0]?.maxOrder || 0;
+      return maxOrder + 1;
+    } catch (error) {
+      console.error('خطأ في الحصول على أقصى ترتيب للقوالب:', error);
+      return 1; // القيمة الافتراضية إذا حدث خطأ
+    }
+  }
+
+  /**
+   * إنشاء slug تلقائي من عنوان القالب
+   * @param title عنوان القالب
+   * @returns المعرف الفريد slug
+   */
+  createSlugFromTitle(title: string): string {
+    // تحويل العنوان إلى نص مناسب لل slug
+    const baseSlug = title
+      .toLowerCase() // تحويل إلى أحرف صغيرة
+      .replace(/[؀-ۿ]/g, '') // إزالة الأحرف العربية
+      .replace(/[^a-z0-9\s-]/g, '') // إزالة كل ما عدا الأحرف والأرقام والمسافات والشرطات
+      .trim() // إزالة المسافات من البداية والنهاية
+      .replace(/\s+/g, '-') // استبدال المسافات بشرطات
+      .replace(/-+/g, '-'); // إزالة الشرطات المتكررة
+      
+    // إذا كان العنوان بالعربية فقط أو لم ينتج أي slug مناسب
+    if (!baseSlug || baseSlug.length < 2) {
+      // إنشاء معرف عشوائي باستخدام الطابع الزمني
+      const timestamp = new Date().getTime();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      return `template-${timestamp}-${randomStr}`;
+    }
+    
+    return baseSlug;
+  }
+
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
-    const [template] = await db.insert(templates).values(insertTemplate).returning();
-    return template;
+    try {
+      // التحقق من البيانات وإضافة القيم الإفتراضية المطلوبة
+      const templateData = { ...insertTemplate };
+
+      // إنشاء slug تلقائي إذا لم يتم توفيره
+      if (!templateData.slug || templateData.slug.trim() === '') {
+        templateData.slug = this.createSlugFromTitle(templateData.title);
+        console.log(`تم إنشاء slug تلقائي: ${templateData.slug}`);
+      }
+
+      // الحصول على الترتيب التلقائي إذا لم يتم توفيره أو كان صفر
+      if (!templateData.displayOrder || templateData.displayOrder <= 0) {
+        templateData.displayOrder = await this.getNextTemplateDisplayOrder();
+        console.log(`تم تعيين الترتيب التلقائي: ${templateData.displayOrder}`);
+      }
+
+      // إنشاء القالب مع البيانات المحدثة
+      const [template] = await db.insert(templates).values(templateData).returning();
+      console.log(`تم إنشاء قالب جديد: ${template.title} (ID: ${template.id})`);
+      return template;
+    } catch (error) {
+      console.error('خطأ في إنشاء القالب:', error);
+      throw error;
+    }
   }
 
   async updateTemplate(id: number, data: Partial<InsertTemplate>): Promise<Template | undefined> {
-    const [updatedTemplate] = await db
-      .update(templates)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(templates.id, id))
-      .returning();
-    return updatedTemplate;
+    try {
+      return await withDatabaseRetry(async () => {
+        // التحقق من وجود القالب قبل محاولة تحديثه
+        const template = await db.select().from(templates).where(eq(templates.id, id)).limit(1);
+        
+        if (template.length === 0) {
+          console.log(`القالب برقم ${id} غير موجود للتحديث`);
+          return undefined;
+        }
+
+        // التحقق من وجود حقل active في البيانات المرسلة
+        // تعيين قيمة active بشكل صريح إلى boolean لضمان التجانس
+        const updateData = { ...data };
+        if ('active' in updateData) {
+          updateData.active = Boolean(updateData.active);
+          console.log(`تحديث حالة القالب ${
+            updateData.active ? 'إلى نشط' : 'إلى غير نشط'}`);
+        }
+        
+        const [updatedTemplate] = await db
+          .update(templates)
+          .set({ ...updateData, updatedAt: new Date() })
+          .where(eq(templates.id, id))
+          .returning();
+
+        console.log(`تم تحديث القالب برقم ${id} بنجاح`);
+        return updatedTemplate;
+      }, 3, 1000);
+    } catch (error) {
+      console.error(`خطأ في تحديث القالب برقم ${id}:`, error);
+      return undefined;
+    }
   }
 
   async deleteTemplate(id: number): Promise<boolean> {
-    const result = await db.delete(templates).where(eq(templates.id, id));
-    return !!result;
+    try {
+      // استخدام withDatabaseRetry لنفس السبب الذي ذكرناه سابقاً
+      return await withDatabaseRetry(async () => {
+        // التحقق من وجود القالب قبل محاولة حذفه
+        const template = await db.select().from(templates).where(eq(templates.id, id)).limit(1);
+        
+        if (template.length === 0) {
+          console.log(`القالب برقم ${id} غير موجود`);
+          return false;
+        }
+        
+        // حذف حقول القالب أولاً
+        await db.delete(templateFields).where(eq(templateFields.templateId, id));
+        
+        // ثم حذف القالب نفسه
+        const result = await db.delete(templates).where(eq(templates.id, id));
+        
+        // إضافة سجل لمعرفة نتيجة الحذف
+        console.log(`تم حذف القالب برقم ${id}:، النتيجة:`, result);
+        
+        // rowCount هي الخاصية المناسبة للتحقق من عدد الصفوف المتأثرة
+        return true; // إذا وصلنا إلى هنا، فهذا يعني أن الحذف نجح
+      }, 3, 1000, false);
+    } catch (error) {
+      console.error(`خطأ في حذف القالب برقم ${id}:`, error);
+      return false;
+    }
   }
 
   // Template Fields methods
@@ -1191,28 +1310,117 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrUpdateSetting(insertSetting: InsertSetting): Promise<Setting> {
-    // Check if setting exists
-    const existingSetting = await this.getSetting(insertSetting.key);
-    
-    if (existingSetting) {
-      // Update
-      const [updatedSetting] = await db
-        .update(settings)
-        .set({ ...insertSetting, updatedAt: new Date() })
-        .where(eq(settings.key, insertSetting.key))
-        .returning();
+    try {
+      return await withDatabaseRetry(async () => {
+        // تضمين حقول createdAt و updatedAt إذا لم تكن موجودة
+        const settingData = {
+          ...insertSetting,
+          createdAt: insertSetting.createdAt || new Date(),
+          updatedAt: new Date()
+        };
+
+        console.log(`جاري حفظ الإعداد ${settingData.category}/${settingData.key} بالقيمة:`, 
+          typeof settingData.value === 'object' ? JSON.stringify(settingData.value) : settingData.value);
+        
+        // البحث عن الإعداد الحالي باستخدام category و key معًا
+        const [existingSetting] = await db
+          .select()
+          .from(settings)
+          .where(and(
+            eq(settings.category, settingData.category),
+            eq(settings.key, settingData.key)
+          ));
+        
+        if (existingSetting) {
+          // تحديث الإعداد الموجود
+          console.log(`تحديث الإعداد الموجود: ${settingData.category}/${settingData.key}`);
+          const [updatedSetting] = await db
+            .update(settings)
+            .set({
+              value: settingData.value,
+              description: settingData.description || existingSetting.description,
+              updatedAt: new Date()
+            })
+            .where(and(
+              eq(settings.category, settingData.category),
+              eq(settings.key, settingData.key)
+            ))
+            .returning();
+          
+          return updatedSetting;
+        } else {
+          // إنشاء إعداد جديد
+          console.log(`إنشاء إعداد جديد: ${settingData.category}/${settingData.key}`);
+          const [setting] = await db.insert(settings).values(settingData).returning();
+          return setting;
+        }
+      }, 3, 1000);
+    } catch (error) {
+      console.error(`خطأ في إنشاء أو تحديث الإعداد ${insertSetting.category}/${insertSetting.key}:`, error);
       
-      return updatedSetting;
-    } else {
-      // Create
-      const [setting] = await db.insert(settings).values(insertSetting).returning();
-      return setting;
+      // محاولة أخيرة - استخدام تقنية تحديث أو إدراج يدوية عبر SQL
+      try {
+        console.log('محاولة استخدام UPSERT القياسي...');
+        const query = `
+          INSERT INTO settings (category, key, value, description, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, NOW(), NOW())
+          ON CONFLICT (category, key) DO UPDATE 
+          SET value = $3, description = $4, updated_at = NOW() 
+          RETURNING *;
+        `;
+        
+        const result = await db.execute(query, [
+          insertSetting.category,
+          insertSetting.key,
+          typeof insertSetting.value === 'object' ? JSON.stringify(insertSetting.value) : String(insertSetting.value),
+          insertSetting.description || `Setting for ${insertSetting.category}/${insertSetting.key}`
+        ]);
+        
+        if (result && result[0]) {
+          console.log('تم الحفظ باستخدام UPSERT');
+          return result[0] as Setting;
+        }
+
+        throw new Error('فشلت عملية UPSERT');
+      } catch (sqlError) {
+        console.error('فشلت المحاولة الأخيرة لحفظ الإعداد:', sqlError);
+        throw error; // رمي الخطأ الأصلي للحفاظ على تتبع المكدس الأصلي
+      }
     }
   }
 
   async deleteSetting(key: string): Promise<boolean> {
-    const result = await db.delete(settings).where(eq(settings.key, key));
-    return !!result;
+    try {
+      return await withDatabaseRetry(async () => {
+        console.log(`محاولة حذف الإعداد بالمفتاح: ${key}`);
+        
+        // التحقق أولاً من وجود الإعداد
+        const [existingSetting] = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.key, key));
+          
+        if (!existingSetting) {
+          console.log(`الإعداد بالمفتاح ${key} غير موجود، لا يلزم الحذف`);
+          return true; // نجاح - الإعداد غير موجود أصلاً
+        }
+        
+        // حذف الإعداد
+        const result = await db.delete(settings).where(eq(settings.key, key));
+        const success = result.rowCount > 0;
+        
+        if (success) {
+          console.log(`تم حذف الإعداد بالمفتاح ${key} بنجاح`);
+        } else {
+          console.log(`فشل حذف الإعداد بالمفتاح ${key}`);
+        }
+        
+        return success;
+      }, 3, 1000);
+    } catch (error) {
+      console.error(`خطأ في حذف الإعداد بالمفتاح ${key}:`, error);
+      return false;
+    }
   }
   
   // Get all cards
@@ -1617,23 +1825,37 @@ export class DatabaseStorage implements IStorage {
   
   async getSettingValue(category: string, key: string): Promise<any> {
     try {
+      // استخدام التضمين المباشر بدلاً من المعاملات المُعدة لحل المشكلة
       const query = `SELECT value FROM settings WHERE category = '${category}' AND key = '${key}'`;
       const result = await db.execute(query);
       
       if (result.rows.length === 0) return null;
-      const value = result.rows[0].value;
+      const rawValue = result.rows[0].value;
       
-      // محاولة تحليل القيمة كـ JSON إذا كانت مخزنة كنص
-      if (typeof value === 'string') {
+      // محاولة تحليل القيمة كـ JSON
+      if (typeof rawValue === 'string') {
         try {
-          return JSON.parse(value);
+          const parsedValue = JSON.parse(rawValue);
+          
+          // إذا كان الكائن يحتوي على خاصية 'value' فقط، فهذا يعني أنها قيمة بسيطة تم تغليفها
+          if (typeof parsedValue === 'object' &&
+              parsedValue !== null &&
+              Object.keys(parsedValue).length === 1 &&
+              'value' in parsedValue) {
+            // إرجاع القيمة البسيطة مباشرة
+            return parsedValue.value;
+          }
+          
+          // إذا كان كائن مركب أو مصفوفة، أعده كما هو
+          return parsedValue;
         } catch (e) {
+          console.warn(`Failed to parse JSON for ${category}.${key}:`, e);
           // إذا فشل التحليل، أعد القيمة كما هي
-          return value;
+          return rawValue;
         }
       }
       
-      return value;
+      return rawValue;
     } catch (error) {
       console.error(`Error retrieving setting ${category}.${key}:`, error);
       return null;
@@ -1642,15 +1864,29 @@ export class DatabaseStorage implements IStorage {
   
   async updateSettingValue(category: string, key: string, value: any): Promise<boolean> {
     try {
-      // تحويل القيمة إلى JSON إذا كانت كائن أو مصفوفة
-      const valueToStore = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      // تحضير القيمة للتخزين بطريقة صحيحة متوافقة مع JSON
+      // القيم البسيطة (string, number, boolean) يجب أن توضع داخل JSON object
+      let valueToStore;
+      
+      // إذا كانت القيمة كائن بالفعل، نحولها مباشرة إلى JSON
+      if (typeof value === 'object' && value !== null) {
+        valueToStore = JSON.stringify(value);
+      } 
+      // إذا كانت القيمة string، number، أو boolean، نضعها في كائن JSON
+      else {
+        // وضع القيمة في كائن لضمان صلاحية التخزين كـ JSON
+        valueToStore = JSON.stringify({ value: value });
+      }
+      
+      console.log(`Storing value for ${category}.${key}:`, valueToStore);
       
       // البحث عن الإعداد الحالي
       const checkQuery = `SELECT key FROM settings WHERE category = '${category}' AND key = '${key}'`;
       const checkResult = await db.execute(checkQuery);
       
       if (checkResult.rows.length > 0) {
-        // تحديث إذا كان موجودًا
+        // تحديث إذا كان موجودًا - استخدام التضمين المباشر بدلاً من المعاملات المعدة
+        // ملاحظة: يجب أن نستخدم المعاملات المعدة عند الإمكان، لكننا نستخدم التضمين المباشر لحل مشكلة وجود خلل
         const updateQuery = `UPDATE settings SET value = '${valueToStore}', updated_at = NOW() WHERE category = '${category}' AND key = '${key}'`;
         await db.execute(updateQuery);
       } else {

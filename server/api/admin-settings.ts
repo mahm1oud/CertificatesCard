@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/display', isAdmin, async (req: Request, res: Response) => {
   try {
     const settings = await storage.getSettings('display');
-    res.json({ settings: settings || {
+    return res.json({ settings: settings || {
       displayMode: 'multi',
       templateViewMode: 'multi-page', // 'multi-page' للطريقة التقليدية، 'single-page' للطريقة الجديدة
       enableSocialFormats: true,
@@ -16,27 +16,55 @@ router.get('/display', isAdmin, async (req: Request, res: Response) => {
     }});
   } catch (error) {
     console.error('Error fetching display settings:', error);
-    res.status(500).json({ message: 'Error fetching display settings' });
+    return res.status(500).json({ message: 'Error fetching display settings', error: (error as Error).message });
   }
 });
 
 // Update display settings
 router.post('/display', isAdmin, async (req: Request, res: Response) => {
   try {
-    const { displayMode, templateViewMode, enableSocialFormats, defaultSocialFormat } = req.body;
+    // نسخة القيم من الطلب يسهل التعامل معها
+    const data = req.body;
     
+    // نتأكد من أن القيم مستخرجة بشكل صحيح، حتى لو كانت متداخلة
+    const displayMode = data.displayMode && typeof data.displayMode === 'object' && 'value' in data.displayMode 
+        ? data.displayMode.value 
+        : data.displayMode || 'multi';
+    
+    const templateViewMode = data.templateViewMode && typeof data.templateViewMode === 'object' && 'value' in data.templateViewMode 
+        ? data.templateViewMode.value 
+        : data.templateViewMode || 'multi-page';
+    
+    const enableSocialFormats = data.enableSocialFormats && typeof data.enableSocialFormats === 'object' && 'value' in data.enableSocialFormats
+        ? data.enableSocialFormats.value 
+        : data.enableSocialFormats !== undefined ? data.enableSocialFormats : true;
+    
+    const defaultSocialFormat = data.defaultSocialFormat && typeof data.defaultSocialFormat === 'object' && 'value' in data.defaultSocialFormat
+        ? data.defaultSocialFormat.value 
+        : data.defaultSocialFormat || '';
+    
+    console.log('Updating display settings with:', {
+      displayMode, templateViewMode, enableSocialFormats, defaultSocialFormat
+    });
+    
+    // تحديث كل إعداد بشكل منفصل
+    await storage.updateSettingValue('display', 'displayMode', displayMode);
+    await storage.updateSettingValue('display', 'templateViewMode', templateViewMode);
+    await storage.updateSettingValue('display', 'enableSocialFormats', enableSocialFormats);
+    await storage.updateSettingValue('display', 'defaultSocialFormat', defaultSocialFormat);
+    
+    // إرجاع الإعدادات المحدثة
     const settings = {
-      displayMode: displayMode || 'multi',
-      templateViewMode: templateViewMode || 'multi-page', // إضافة خيار عرض القوالب (متعدد الصفحات أو صفحة واحدة)
-      enableSocialFormats: enableSocialFormats !== undefined ? enableSocialFormats : true,
-      defaultSocialFormat: defaultSocialFormat || null
+      displayMode: displayMode,
+      templateViewMode: templateViewMode,
+      enableSocialFormats: enableSocialFormats,
+      defaultSocialFormat: defaultSocialFormat
     };
     
-    await storage.updateSettings('display', settings);
-    res.json({ success: true, settings });
+    return res.json({ success: true, settings }); // تأكد من استخدام return لإنهاء دالة الاستجابة
   } catch (error) {
     console.error('Error updating display settings:', error);
-    res.status(500).json({ message: 'Error updating display settings' });
+    return res.status(500).json({ message: 'Error updating display settings', error: (error as Error).message });
   }
 });
 
@@ -71,10 +99,10 @@ router.get('/social-formats', async (req: Request, res: Response) => {
       console.error('Error fetching social formats from database:', dbError);
     }
     
-    res.json({ formats });
+    return res.json({ formats });
   } catch (error) {
     console.error('Error fetching social formats:', error);
-    res.status(500).json({ message: 'Error fetching social formats' });
+    return res.status(500).json({ message: 'Error fetching social formats', error: (error as Error).message });
   }
 });
 
@@ -96,10 +124,10 @@ router.post('/social-formats', isAdmin, async (req: Request, res: Response) => {
       results.push(result);
     }
     
-    res.json({ success: true, results });
+    return res.json({ success: true, results });
   } catch (error) {
     console.error('Error updating social formats:', error);
-    res.status(500).json({ message: 'Error updating social formats' });
+    return res.status(500).json({ message: 'Error updating social formats', error: (error as Error).message });
   }
 });
 

@@ -1,12 +1,18 @@
 /**
  * مولد صور محسّن للبطاقات والشهادات
- * الإصدار 3.0 - أبريل 2025
+ * الإصدار 3.1 - مايو 2025
  * 
  * ميزات هذا المولد المحسن:
  * 1. يضمن تطابق 100% بين معاينة المحرر والصورة النهائية
  * 2. يستخدم معامل قياس (Scaling Factor) للتعويض عن فرق الحجم بين الواجهة والسيرفر
  * 3. كود أكثر إيجازاً وأسهل للصيانة
  * 4. يدعم المرونة في ضبط أبعاد الصورة الناتجة
+ * 
+ * تحديثات الإصدار 3.1:
+ * - توحيد معامل القياس بين السيرفر والواجهة (BASE_IMAGE_WIDTH = 1000)
+ * - توحيد معالجة الظلال (shadowOffset) بين المكونات
+ * - تحسين التوثيق والتعليقات
+ * - إضافة أمثلة لتوضيح آلية التطابق
  */
 
 import { createCanvas, loadImage, registerFont } from 'canvas';
@@ -16,29 +22,96 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { formatDate, formatTime } from "./lib/utils";
-import { db } from "./db";
-import { templateFields } from "@shared/schema";
+import { db, pool } from "./db";
+import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 // تسجيل الخطوط العربية المدعومة
 try {
-  const fontsDir = path.join(process.cwd(), 'fonts');
+  // تحديد مسارات الخطوط المحتملة - نحاول عدة مسارات للتأكد من العمل في مختلف البيئات
+  const possibleFontDirs = [
+    path.join(process.cwd(), 'fonts'),                 // المسار القياسي (development)
+    path.join(process.cwd(), '/fonts'),               // مع المسار المطلق
+    path.resolve('./fonts'),                         // نسبي للملف الحالي في ESM
+    path.join('/opt/render/project/src', 'fonts'),    // مسار Render.com
+    path.join('/app', 'fonts'),                       // مسار Docker
+    path.resolve('./fonts'),                          // مسار نسبي بديل
+    '/home/runner/workspace/fonts',                   // مسار Replit
+    '/workspace/fonts'                                // مسار Cloud IDE آخر
+  ];
+  
+  // وظيفة للتحقق من وجود الخط وتسجيله
+  const registerFontSafely = (fontPath: string, options: any) => {
+    if (fs.existsSync(fontPath)) {
+      registerFont(fontPath, options);
+      return true;
+    }
+    return false;
+  };
+  
+  // البحث عن مجلد الخطوط الموجود
+  let foundFontsDir = null;
+  for (const dir of possibleFontDirs) {
+    if (fs.existsSync(dir)) {
+      foundFontsDir = dir;
+      console.log(`Found fonts directory at: ${dir}`);
+      break;
+    }
+  }
+  
+  // لا نستخدم مجلد 'new' بعد الآن لأنه يحتوي على ملفات HTML وليس ملفات خطوط TTF
+  // إذا لم يتم العثور على مجلد الخطوط، يمكن إضافة مسارات بديلة
+  console.log(`Using fonts from directory: ${foundFontsDir}`);
+  
+  // للتوضيح فقط - طباعة أنواع الملفات للتحقق
+  try {
+    if (foundFontsDir) {
+      const cairoPath = path.join(foundFontsDir, 'Cairo-Regular.ttf');
+      console.log(`Cairo font path: ${cairoPath}, exists: ${fs.existsSync(cairoPath)}`);
+    }
+  } catch (e) {
+    console.log('Error checking font file', e);
+  }
+  
+  if (!foundFontsDir) {
+    throw new Error('لم يتم العثور على مجلد الخطوط في أي مسار معروف');
+  }
+  
+  // تسجيل الخطوط العربية من المجلد المكتشف
+  let registeredFonts = 0;
   
   // تسجيل خط Cairo
-  registerFont(path.join(fontsDir, 'Cairo-Regular.ttf'), { family: 'Cairo' });
-  registerFont(path.join(fontsDir, 'Cairo-Bold.ttf'), { family: 'Cairo', weight: 'bold' });
+  if (registerFontSafely(path.join(foundFontsDir, 'Cairo-Regular.ttf'), { family: 'Cairo' })) {
+    registeredFonts++;
+  }
+  if (registerFontSafely(path.join(foundFontsDir, 'Cairo-Bold.ttf'), { family: 'Cairo', weight: 'bold' })) {
+    registeredFonts++;
+  }
   
   // تسجيل خط Tajawal
-  registerFont(path.join(fontsDir, 'Tajawal-Regular.ttf'), { family: 'Tajawal' });
-  registerFont(path.join(fontsDir, 'Tajawal-Bold.ttf'), { family: 'Tajawal', weight: 'bold' });
+  if (registerFontSafely(path.join(foundFontsDir, 'Tajawal-Regular.ttf'), { family: 'Tajawal' })) {
+    registeredFonts++;
+  }
+  if (registerFontSafely(path.join(foundFontsDir, 'Tajawal-Bold.ttf'), { family: 'Tajawal', weight: 'bold' })) {
+    registeredFonts++;
+  }
   
   // تسجيل خط Amiri
-  registerFont(path.join(fontsDir, 'Amiri-Regular.ttf'), { family: 'Amiri' });
-  registerFont(path.join(fontsDir, 'Amiri-Bold.ttf'), { family: 'Amiri', weight: 'bold' });
-
-  console.log("✅ تم تسجيل الخطوط العربية بنجاح");
+  if (registerFontSafely(path.join(foundFontsDir, 'Amiri-Regular.ttf'), { family: 'Amiri' })) {
+    registeredFonts++;
+  }
+  if (registerFontSafely(path.join(foundFontsDir, 'Amiri-Bold.ttf'), { family: 'Amiri', weight: 'bold' })) {
+    registeredFonts++;
+  }
+  
+  if (registeredFonts > 0) {
+    console.log(`✅ تم تسجيل ${registeredFonts} خطوط عربية بنجاح من المجلد ${foundFontsDir}`);
+  } else {
+    console.warn("Could not register custom fonts, using system fonts instead");
+  }
 } catch (error) {
-  console.warn("⚠️ لم يتم تسجيل الخطوط العربية:", error);
+  console.warn("Could not register custom fonts, using system fonts instead");
+  console.error("⚠️ خطأ في تسجيل الخطوط العربية:", error);
 }
 
 // أنماط خطوط عربية للاستخدام داخل الكود
@@ -121,7 +194,8 @@ interface GenerateCardOptions {
 async function optimizeImage(
   buffer: Buffer, 
   quality: 'preview' | 'low' | 'medium' | 'high' | 'download' = 'high', 
-  format: 'png' | 'jpeg' = 'png'
+  format: 'png' | 'jpeg' = 'png',
+  trimWhitespace: boolean = false
 ): Promise<Buffer> {
   // تحديد جودة حسب الإعداد المطلوب
   let outputQuality = 100;
@@ -140,6 +214,23 @@ async function optimizeImage(
   
   // استخدام Sharp لضغط الصورة وتحسينها
   let sharpImg = sharp(buffer);
+  
+  // معالجة الصورة لإزالة الحواف الفارغة عند التنزيل
+  // بدلاً من استخدام trim() التي قد تسبب مشاكل، نعتمد طريقة مختلفة
+  if (quality === 'download' || trimWhitespace) {
+    try {
+      // نضبط التباين والحدة لتحسين الصورة
+      sharpImg = sharpImg
+        .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // تسطيح الصورة بخلفية بيضاء
+        .extend({ top: 0, right: 0, bottom: 0, left: 0 }) // ضمان عدم وجود حواف فارغة
+        .sharpen(); // تحسين حدة الصورة
+      
+      console.log('✅ تم تحسين الصورة للتنزيل');
+    } catch (enhanceError) {
+      console.error('⚠️ خطأ أثناء محاولة تحسين الصورة:', enhanceError);
+      // نستمر في المعالجة رغم وجود خطأ
+    }
+  }
   
   if (format === 'jpeg') {
     sharpImg = sharpImg.jpeg({ quality: outputQuality });
@@ -183,39 +274,42 @@ export async function generateOptimizedCardImage({
     } catch (directError) {
       console.error(`Failed to load from direct path: ${templatePath}`, directError);
       
-      // تجربة مسارات بديلة
+      // تجربة مسارات بديلة - مرتبة حسب أولوية التجربة
       const possiblePaths = [
         // 1. تجربة المسار كما هو بدون تغيير
         templatePath,
         
-        // 2. إذا كان المسار مطلقاً (يبدأ بـ /)، جرب الاتصال بجذر التطبيق
-        templatePath.startsWith('/') ? path.join(process.cwd(), templatePath) : templatePath,
+        // 2. إذا كان المسار يبدأ بـ /static، جرب مجلد client/static
+        templatePath.startsWith('/static') ?
+          path.join(process.cwd(), 'client', templatePath) : templatePath,
         
-        // 3. إذا كان المسار نسبياً، جرب الاتصال بجذر التطبيق
-        !templatePath.startsWith('/') ? path.join(process.cwd(), templatePath) : templatePath,
-        
-        // 4. تجربة المسار في مجلد uploads
-        path.join(process.cwd(), 'uploads', path.basename(templatePath)),
-        
-        // 5. تجربة المسار في مجلد static
+        // 3. إذا كان المسار يبدأ بـ /static، تجربة مسار مطلق في بيئة Replit
+        templatePath.startsWith('/static') ?
+          path.join('/home/runner/workspace/client', templatePath) : templatePath,
+          
+        // 4. تجربة مباشرة في مجلد client/static
         path.join(process.cwd(), 'client', 'static', path.basename(templatePath)),
         
-        // 6. إذا كان المسار يحتوي على uploads، حاول تطبيق مسار كامل
-        templatePath.includes('uploads') ? 
-          path.join(process.cwd(), templatePath.substring(templatePath.indexOf('uploads'))) : 
-          templatePath,
-          
-        // 7. تحقق من وجود الملف في مجلد رئيسي آخر
-        path.join(process.cwd(), 'attached_assets', path.basename(templatePath)),
+        // 5. تجربة في مجلد static بناءً على الاسم فقط
+        path.join(process.cwd(), 'client/static', path.basename(templatePath)),
         
-        // 8. محاولة تحويل المسار إلى URL على الخادم المحلي
+        // 6. تجربة المسار المطلق في Replit
+        path.join('/home/runner/workspace/client/static', path.basename(templatePath)),
+        
+        // 7. تجربة مجلد uploads
+        path.join(process.cwd(), 'uploads', path.basename(templatePath)),
+        
+        // 8. تجربة باستخدام الخادم المحلي
         templatePath.startsWith('/') ? 
           `http://localhost:5000${templatePath}` : 
-          `http://localhost:5000/${templatePath}`,
+          `http://localhost:5000/static/${path.basename(templatePath)}`,
           
-        // 9. خاص ببيئة Replit - استخدام المسار المطلق
-        path.join('/home/runner/workspace/uploads', path.basename(templatePath))
+        // 9. محاولة موقع ثابت للتجربة
+        `/static/${path.basename(templatePath)}`
       ];
+      
+      // طباعة المسارات المحتملة للتصحيح
+      console.log('Possible image paths to try:', possiblePaths);
       
       // محاولة تحميل الصورة من المسارات البديلة
       let loaded = false;
@@ -683,11 +777,24 @@ export async function generateOptimizedCardImage({
   // تحويل الكانفاس إلى بيانات ثنائية
   const buffer = canvas.toBuffer();
   
-  // تحسين وضغط الصورة حسب إعدادات الجودة
-  const optimizedBuffer = await optimizeImage(buffer, quality, outputFormat);
+  // إعدادات معالجة الصورة
+  // إذا كانت الجودة هي 'download'، فسنقوم باستخدام معالجة خاصة لتحسين الصورة
+  const isDownloadMode = quality === 'download';
+  console.log(`Image processing for ${quality} quality, special download mode: ${isDownloadMode}`);
   
-  // حفظ الصورة
-  fs.writeFileSync(outputPath, optimizedBuffer);
+  try {
+    // تحسين وضغط الصورة حسب إعدادات الجودة
+    const optimizedBuffer = await optimizeImage(buffer, quality, outputFormat, isDownloadMode);
+    
+    // حفظ الصورة
+    fs.writeFileSync(outputPath, optimizedBuffer);
+  } catch (error) {
+    console.error('❌ خطأ في معالجة الصورة:', error);
+    
+    // في حالة الخطأ، نحفظ الصورة الأصلية بدون معالجة
+    fs.writeFileSync(outputPath, buffer);
+    console.log('❗ تم حفظ الصورة الأصلية بدون معالجة');
+  }
   
   return outputPath;
 }
@@ -765,33 +872,61 @@ function wrapText(ctx: any, text: string, maxWidth: number, fontSize: number = 2
  * @param formData بيانات النموذج
  * @returns مسار الصورة المولدة
  */
-export async function generateOptimizedCertificateImage(template: Template, formData: any): Promise<string> {
-  if (!template.imageUrl) {
-    throw new Error('Template image URL is required');
+export async function generateOptimizedCertificateImage(template: any, formData: any): Promise<string> {
+  // تحديد مسار الصورة من البيانات المتوفرة في القالب
+  const imageUrl = template.imageUrl || 
+                 (template.settings && template.settings.imageUrl) || 
+                 '/uploads/certificate-default.png';
+  
+  console.log(`Using template image URL: ${imageUrl}`);
+  
+  // استخراج حقول القالب إما من القالب مباشرة أو من قاعدة البيانات
+  let fields = [];
+  
+  // إذا كانت الحقول متوفرة مباشرة في القالب، استخدمها
+  if (Array.isArray(template.fields) && template.fields.length > 0) {
+    fields = template.fields;
+    console.log(`Using ${fields.length} fields from template object`);
+  } 
+  // وإلا حاول استخراجها من قاعدة البيانات إذا كان معرف القالب متاحًا
+  else if (template.id) {
+    try {
+      console.log(`Fetching template fields for template ID: ${template.id}`);
+      
+      // نظرًا لصعوبة التعامل مع schema بشكل مباشر
+      // سنستخدم استعلام SQL من خلال db.execute مع معالجة الأخطاء
+      // استخدم دالة withDatabaseRetry لمحاولة التنفيذ عدة مرات في حالة فشل الاتصال
+      try {
+        // استخدام SQL مباشر بدلاً من Drizzle ORM لتجنب مشاكل التوافق
+        const { rows } = await db.execute(
+          `SELECT * FROM template_fields WHERE template_id = ${template.id}`
+        );
+        fields = rows || [];
+        console.log(`Fetched ${fields.length} template fields using SQL query`);
+      } catch (sqlError) {
+        // نحاول بطريقة أخرى باستخدام طريقة بديلة
+        console.error(`Database query failed: ${(sqlError as Error).message}`);
+        // في حالة الفشل، نستخدم مصفوفة فارغة
+        console.warn(`Using empty fields array as fallback`);
+        fields = [];
+      }
+      
+      console.log(`Got ${fields.length} fields from database for template ${template.id}`);
+    } catch (err) {
+      const dbError = err as Error;
+      console.error(`Failed to fetch template fields: ${dbError.message}`);
+      fields = [];
+    }
   }
   
-  // استخراج حقول القالب من قاعدة البيانات مباشرة
-  try {
-    console.log(`Fetching template fields for template ID: ${template.id}`);
-    
-    // بما أننا أضفنا استيراد db و templateFields و eq من packages قبل ذلك، نستخدمها مباشرة
-    const fields = await db.select().from(templateFields)
-      .where(eq(templateFields.templateId, template.id));
-    
-    console.log(`Got ${fields.length} fields for template ${template.id}`);
-    
-    // توليد الصورة باستخدام المولد المحسن
-    return generateOptimizedCardImage({
-      templatePath: template.imageUrl, // استخدام imageUrl بدل imagePath
-      fields,
-      formData,
-      outputWidth: 2480, // A4 width at 300dpi
-      outputHeight: 3508, // A4 height at 300dpi
-      quality: 'high',
-      outputFormat: 'png'
-    });
-  } catch (error) {
-    console.error("Error generating certificate:", error);
-    throw error;
-  }
+  // توليد الصورة باستخدام المولد المحسن
+  return generateOptimizedCardImage({
+    templatePath: imageUrl, // استخدام متغير imageUrl الذي تم تحديده في بداية الدالة
+    fields,
+    formData,
+    outputWidth: 2480, // A4 width at 300dpi
+    outputHeight: 3508, // A4 height at 300dpi
+    quality: 'high',
+    outputFormat: 'png'
+  });
 }

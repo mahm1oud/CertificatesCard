@@ -8,6 +8,7 @@ import { setupAuth, isAuthenticated, isAdmin, comparePasswords, hashPassword } f
 import { generateCertificateImage } from "./certificate-generator";
 import { generateOptimizedCertificateImage } from "./optimized-image-generator";
 import { processExcelBatch, generateVerificationCode } from "./batch-processor";
+import { performDatabaseHealthCheck, attemptDatabaseRecovery } from "./lib/database-health";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import { z } from "zod";
@@ -27,7 +28,8 @@ import cardsRouter from './api/cards';
 import layersRouter from './api/layers';
 import logosRouter from './api/logos';
 import signaturesRouter from './api/signatures';
-import { healthRouter } from './lib/health-check';
+import healthCheckRouter from './api/health-check';
+import adminMaintenanceRouter from './api/admin-maintenance';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup directory structure
@@ -2279,8 +2281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get display settings (public API - frontend access)
-  app.get('/api/display', async (req, res) => {
+  // مسار موحد لإعدادات العرض - للقراءة العامة
+  app.get('/api/display-settings', async (req, res) => {
     try {
       // استخدم القيم الافتراضية في حالة عدم وجود إعدادات
       let settings = {
@@ -2316,6 +2318,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in display settings API:', error);
       res.status(500).json({ message: 'Error fetching display settings' });
+    }
+  });
+  
+  // مسار موحد لحفظ إعدادات العرض - للمشرفين فقط
+  app.post('/api/display-settings', isAdmin, async (req, res) => {
+    try {
+      const settings = req.body;
+      
+      if (!settings) {
+        return res.status(400).json({ message: 'البيانات المرسلة غير صحيحة' });
+      }
+
+      console.log('Saving display settings:', settings);
+      
+      // حفظ كل إعداد على حدة في قاعدة البيانات
+      for (const [key, value] of Object.entries(settings)) {
+        const settingValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        
+        // استخدام دالة موحدة لإنشاء أو تحديث الإعداد
+        await storage.createOrUpdateSetting({
+          category: 'display',
+          key,
+          value: settingValue,
+          description: `Display setting - ${key}`
+        });
+      }
+      
+      res.json({ success: true, message: 'تم حفظ إعدادات العرض بنجاح' });
+    } catch (error) {
+      console.error('Error saving display settings:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء حفظ الإعدادات' });
     }
   });
   
@@ -2358,11 +2391,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Admin display settings update endpoint
+  // اضفنا مسار ثاني للتوافق مع واجهة المستخدم
+  // مسار موحد لحفظ إعدادات العرض للمشرفين
   app.post('/api/admin/display-settings', isAuthenticated, isAdmin, async (req, res) => {
+    console.log('Received POST to /api/admin/display-settings with body:', JSON.stringify(req.body));
     try {
       const { displayMode, templateViewMode, enableSocialFormats, defaultSocialFormat } = req.body;
       
-      // Validate inputs
+      // تحقق من صحة القيم
       if (displayMode && !['single', 'multi'].includes(displayMode)) {
         return res.status(400).json({ message: 'قيمة وضع العرض غير صالحة' });
       }
@@ -2371,7 +2407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'قيمة وضع عرض القالب غير صالحة' });
       }
       
-      // Update each setting 
+      // تحديث كل إعداد
       if (displayMode) {
         await storage.createOrUpdateSetting({
           key: 'displayMode',
@@ -2693,16 +2729,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // تسجيل مسارات API الإدارية
   app.use('/api/admin/settings', adminSettingsRouter);
+  
+  // تم نقل هذا المسار إلى مسار مركزي موحد: /api/display-settings و /api/admin/display-settings
   app.use('/api/auth-settings', authSettingsRouter);
   app.use('/api/admin', adminStatsRouter);
+  app.use('/api/admin/maintenance', adminMaintenanceRouter); // إضافة مسار API لأدوات الصيانة
   
   // تسجيل مسارات API للطبقات والشعارات والتوقيعات
   app.use('/api/layers', layersRouter);
   app.use('/api/logos', logosRouter);
   app.use('/api/signatures', signaturesRouter);
+  app.use('/api/health', healthCheckRouter);  // إضافة مسار API لصحة النظام
   
-  // إضافة مسار فحص صحة النظام
-  app.use('/health', healthRouter);
+  // إضافة مسار بسيط لفحص صحة النظام
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'النظام يعمل بشكل جيد',
+      timestamp: new Date(),
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
 
   // Create HTTP server
   const httpServer = createServer(app);
