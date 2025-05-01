@@ -57,6 +57,9 @@ interface FieldConfig {
   position: { x: number; y: number } | any; // قبول أي نوع من البيانات للتوافق مع النظام الحالي
   type?: string;
   imageType?: string | null; // نوع الصورة (شعار أو توقيع) - إضافة null للتوافق مع قاعدة البيانات
+  zIndex?: number; // دعم الطبقات
+  visible?: boolean; // دعم الإخفاء
+  rotation?: number; // دعم الدوران
   style?: {
     fontFamily?: string;
     fontSize?: number;
@@ -75,7 +78,7 @@ interface FieldConfig {
     imageMaxHeight?: number;
     imageBorder?: boolean;
     imageRounded?: boolean;
-    layer?: number;
+    layer?: number; // للتوافقية الخلفية مع النظام القديم
   } | any; // قبول أي نوع من البيانات للتوافق مع النظام الحالي
   defaultValue?: string | null;
   label?: string;
@@ -345,7 +348,16 @@ export async function generateOptimizedCardImage({
     const field = fieldsMap.get(fieldName);
     if (!field) continue;
     
-    fieldsToRender.push({ field, value, layer: field.style?.layer || 1 });
+    // تخطي الحقول المخفية
+    if (field.visible === false) {
+      console.log(`Skipping hidden field: ${fieldName}`);
+      continue;
+    }
+    
+    // استخدام zIndex كطبقة إذا كان موجودًا، وإلا نستخدم style.layer للتوافقية الخلفية
+    const layer = field.zIndex || field.style?.layer || 1;
+    
+    fieldsToRender.push({ field, value, layer });
   }
   
   // ترتيب الحقول حسب الطبقة (الأصغر يظهر خلف الأكبر)
@@ -370,6 +382,21 @@ export async function generateOptimizedCardImage({
     // تحويل النسب المئوية إلى بكسل
     const posX = Math.round((xPercent / 100) * outputWidth);
     const posY = Math.round((yPercent / 100) * outputHeight);
+    
+    // معالجة التدوير إذا كان موجودًا
+    const rotation = field.rotation || 0; // زاوية التدوير بالدرجات
+    
+    // إذا كان هناك تدوير، نقوم بتحويل السياق
+    if (rotation !== 0) {
+      // تحريك نقطة الأصل إلى موضع العنصر
+      ctx.translate(posX, posY);
+      // تطبيق التدوير (تحويل من درجات إلى راديان)
+      ctx.rotate((rotation * Math.PI) / 180);
+      // إعادة نقطة الأصل إلى الوضع العادي (0,0 بالنسبة للعنصر)
+      ctx.translate(-posX, -posY);
+      
+      console.log(`Applied rotation of ${rotation} degrees to field ${fieldName}`);
+    }
     
     // التعامل مع أنواع الحقول المختلفة (نص أو صورة)
     if (field.type === 'image') {

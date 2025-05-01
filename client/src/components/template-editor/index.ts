@@ -6,17 +6,19 @@
  * كما يضمن التوافقية الخلفية مع الكود القديم عبر تصدير المكونات القديمة والجديدة
  */
 
-// تصدير المكونات الموحدة الجديدة
-export { DraggableFieldsPreviewUnified as DraggableFieldsPreview } from './DraggableFieldsPreviewUnified';
+// تصدير المكونات المحسنة كمكونات قياسية
+export { DraggableFieldsPreviewEnhanced as DraggableFieldsPreview } from './DraggableFieldsPreviewEnhanced2';
 export { AdvancedTemplateEditor as TemplateEditor } from './AdvancedTemplateEditor';
 
-// تصدير المكونات للتوافقية الخلفية مع الكود القديم
-export { default as DraggableFieldsPreviewUnified } from './DraggableFieldsPreviewUnified';
+// تصدير المكونات للتوافقية الخلفية
+export { default as DraggableFieldsPreviewEnhanced } from './DraggableFieldsPreviewEnhanced2';
 export { default as AdvancedTemplateEditor } from './AdvancedTemplateEditor';
 
-// تصدير المكونات القديمة بأسمائها الأصلية للتوافقية الخلفية
-export { DraggableFieldsPreviewPro } from './DraggableFieldsPreviewPro';
-export { DraggableFieldsPreviewPro2 } from './DraggableFieldsPreviewPro2';
+// للتوافقية الخلفية مع الكود القديم، نصدر المكون المحسن تحت كل الأسماء المستخدمة سابقًا
+export { DraggableFieldsPreviewEnhanced as DraggableFieldsPreviewUnified } from './DraggableFieldsPreviewEnhanced2';
+export { DraggableFieldsPreviewEnhanced as DraggableFieldsPreviewPro } from './DraggableFieldsPreviewEnhanced2';
+export { DraggableFieldsPreviewEnhanced as DraggableFieldsPreviewPro2 } from './DraggableFieldsPreviewEnhanced2';
+export { FieldOptionsEditor } from './FieldOptionsEditor';
 
-// ملاحظة: نستخدم DraggableFieldsPreviewPro كنسخة افتراضية قديمة للتوافقية مع الكود الموجود
-// وسيتم استبدالها تدريجياً بالنسخة الموحدة الجديدة
+// ملاحظة: أصبح المكون DraggableFieldsPreviewEnhanced هو المكون القياسي المستخدم في التطبيق
+// ويحتوي على جميع الميزات المتقدمة المطلوبة مع ضمان التطابق 100% مع مولد الصور
