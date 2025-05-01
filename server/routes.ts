@@ -111,6 +111,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup auth
   setupAuth(app);
   
+  // مسار مؤقت لتحديث كلمة مرور مستخدم admin
+  app.get('/api/reset-admin-password', async (req, res) => {
+    try {
+      // الحصول على المستخدم admin
+      const admin = await storage.getUserByUsername('admin');
+      if (!admin) {
+        return res.status(404).json({ message: 'مستخدم admin غير موجود' });
+      }
+      
+      // تشفير كلمة المرور الجديدة
+      const hashedPassword = await hashPassword('700700');
+      
+      // تحديث كلمة المرور
+      await storage.updateUser(admin.id, { password: hashedPassword });
+      
+      res.json({ success: true, message: 'تم تحديث كلمة مرور المستخدم admin' });
+    } catch (error) {
+      console.error('خطأ في تحديث كلمة المرور:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء تحديث كلمة المرور' });
+    }
+  });
+  
   // ====================
   // PUBLIC API ENDPOINTS
   // ====================
