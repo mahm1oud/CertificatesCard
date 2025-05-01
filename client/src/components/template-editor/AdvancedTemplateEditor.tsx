@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { DraggableFieldsPreviewUnified } from './DraggableFieldsPreviewUnified';
+import { FieldOptionsEditor } from './FieldOptionsEditor';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -72,7 +73,7 @@ interface FieldType {
   name: string;
   label?: string;
   labelAr?: string;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'dropdown' | 'radio';
   position: { x: number; y: number, snapToGrid?: boolean };
   style?: any;
   zIndex?: number;
@@ -83,7 +84,7 @@ interface FieldType {
   defaultValue?: string;
   placeholder?: string;
   placeholderAr?: string;
-  options?: any[];
+  options?: { value: string; label: string }[];
 }
 
 interface EditorSettings {
@@ -359,21 +360,41 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
             </CardContent>
             
             {!readOnly && (
-              <CardFooter className="flex gap-2 border-t p-4">
+              <CardFooter className="flex flex-wrap gap-2 border-t p-4">
                 <Button 
                   variant="outline" 
                   onClick={() => handleAddField('text')}
+                  size="sm"
                 >
-                  <TextIcon className="w-4 h-4 ml-2" />
-                  إضافة حقل نص
+                  <TextIcon className="w-4 h-4 ml-1" />
+                  حقل نص
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   onClick={() => handleAddField('image')}
+                  size="sm"
                 >
-                  <Image className="w-4 h-4 ml-2" />
-                  إضافة حقل صورة
+                  <Image className="w-4 h-4 ml-1" />
+                  حقل صورة
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleAddField('dropdown')}
+                  size="sm"
+                >
+                  <ChevronsUpDown className="w-4 h-4 ml-1" />
+                  قائمة منسدلة
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleAddField('radio')}
+                  size="sm"
+                >
+                  <List className="w-4 h-4 ml-1" />
+                  اختيارات متعددة
                 </Button>
               </CardFooter>
             )}
@@ -676,7 +697,13 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
                         </div>
                         
                         {/* خصائص محددة حسب نوع الحقل */}
-                        {selectedField.type === 'text' ? (
+                        {selectedField.type === 'dropdown' || selectedField.type === 'radio' ? (
+                          <FieldOptionsEditor
+                            field={selectedField}
+                            onFieldChange={handleFieldChange}
+                            readOnly={readOnly}
+                          />
+                        ) : selectedField.type === 'text' ? (
                           <>
                             <Separator />
                             <h3 className="text-lg font-medium">خصائص النص</h3>
