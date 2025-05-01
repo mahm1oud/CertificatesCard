@@ -39,13 +39,20 @@ interface FieldType {
   id: number;
   name: string;
   label?: string;
-  type: 'text' | 'image';
+  labelAr?: string;
+  type: 'text' | 'image' | 'dropdown' | 'radio';
   position: { x: number; y: number, snapToGrid?: boolean };
   style?: any;
   zIndex?: number; // دعم الطبقات
   visible?: boolean; // دعم الإخفاء
   rotation?: number; // دعم الدوران
   size?: { width: number; height: number }; // دعم التحجيم المباشر
+  templateId?: number;
+  required?: boolean;
+  defaultValue?: string;
+  placeholder?: string;
+  placeholderAr?: string;
+  options?: { value: string; label: string }[];
 }
 
 interface DraggableFieldsPreviewUnifiedProps {
