@@ -2083,6 +2083,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================
+  // USER LOGOS API ENDPOINTS
+  // ========================
+  
+  // Get user logos
+  app.get('/api/user/logos', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const logos = await storage.getUserLogos(userId);
+      res.json(logos || []);
+    } catch (error) {
+      console.error("Error fetching user logos:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء جلب الشعارات" });
+    }
+  });
+  
+  // Upload user logo
+  app.post('/api/user/logos', isAuthenticated, upload.single('logo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "لم يتم تقديم ملف للشعار" });
+      }
+      
+      const userId = req.user.id;
+      const name = req.body.name || 'شعار';
+      
+      // Generate URL path for the file
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      const logo = await storage.createUserLogo({
+        userId,
+        name,
+        imageUrl: fileUrl,
+      });
+      
+      res.json(logo);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء رفع الشعار" });
+    }
+  });
+  
+  // Delete user logo
+  app.delete('/api/user/logos/:id', isAuthenticated, async (req, res) => {
+    try {
+      const logoId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      if (isNaN(logoId)) {
+        return res.status(400).json({ message: "رقم الشعار غير صالح" });
+      }
+      
+      // Verify logo belongs to user
+      const logo = await storage.getUserLogo(logoId);
+      if (!logo || logo.userId !== userId) {
+        return res.status(404).json({ message: "الشعار غير موجود" });
+      }
+      
+      await storage.deleteUserLogo(logoId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting logo:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء حذف الشعار" });
+    }
+  });
+  
+  // ============================
+  // USER SIGNATURES API ENDPOINTS
+  // ============================
+  
+  // Get user signatures
+  app.get('/api/user/signatures', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const signatures = await storage.getUserSignatures(userId);
+      res.json(signatures || []);
+    } catch (error) {
+      console.error("Error fetching user signatures:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء جلب التوقيعات" });
+    }
+  });
+  
+  // Upload user signature
+  app.post('/api/user/signatures', isAuthenticated, upload.single('signature'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "لم يتم تقديم ملف للتوقيع" });
+      }
+      
+      const userId = req.user.id;
+      const name = req.body.name || 'توقيع';
+      const type = req.body.type === 'stamp' ? 'stamp' : 'signature';
+      
+      // Generate URL path for the file
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      const signature = await storage.createUserSignature({
+        userId,
+        name,
+        type,
+        imageUrl: fileUrl,
+      });
+      
+      res.json(signature);
+    } catch (error) {
+      console.error("Error uploading signature:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء رفع التوقيع" });
+    }
+  });
+  
+  // Delete user signature
+  app.delete('/api/user/signatures/:id', isAuthenticated, async (req, res) => {
+    try {
+      const signatureId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      if (isNaN(signatureId)) {
+        return res.status(400).json({ message: "رقم التوقيع غير صالح" });
+      }
+      
+      // Verify signature belongs to user
+      const signature = await storage.getUserSignature(signatureId);
+      if (!signature || signature.userId !== userId) {
+        return res.status(404).json({ message: "التوقيع غير موجود" });
+      }
+      
+      await storage.deleteUserSignature(signatureId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting signature:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء حذف التوقيع" });
+    }
+  });
+
   // Get display settings (public API - frontend access)
   app.get('/api/display', async (req, res) => {
     try {
