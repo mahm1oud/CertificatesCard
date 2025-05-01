@@ -107,36 +107,50 @@ export const DraggableFieldsPreviewUnified: React.FC<DraggableFieldsPreviewUnifi
 
   // تحميل صورة القالب وضبط أبعاد Stage ليطابق أبعاد الصورة تمامًا (1:1)
   useEffect(() => {
-    const img = new window.Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      console.log(`تم تحميل صورة القالب بأبعاد: ${img.width}x${img.height}`);
+    // دالة لتحميل صورة وإعداد إعدادات العرض
+    const loadImage = (src: string) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        console.log(`تم تحميل الصورة بأبعاد: ${img.width}x${img.height}`);
+        
+        // استخدام الأبعاد الطبيعية للصورة 100%
+        setBackgroundImage(img);
+        setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+        
+        // حساب حجم Stage المناسب ليناسب الحاوية مع الحفاظ على نسبة العرض إلى الارتفاع
+        if (containerRef.current) {
+          const containerWidth = containerRef.current.clientWidth;
+          const containerHeight = containerRef.current.clientHeight || 600;
+          
+          // حساب مقياس لملاءمة الصورة في الحاوية
+          const widthRatio = containerWidth / img.naturalWidth;
+          const heightRatio = containerHeight / img.naturalHeight;
+          const newScale = Math.min(widthRatio, heightRatio, 1);
+          
+          console.log(`مقياس العرض: ${widthRatio.toFixed(2)}, مقياس الارتفاع: ${heightRatio.toFixed(2)}, المقياس المختار: ${newScale.toFixed(2)}`);
+          
+          setStageScale(newScale);
+        }
+      };
       
-      // استخدام الأبعاد الطبيعية للصورة 100%
-      setBackgroundImage(img);
-      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+      // معالجة خطأ تحميل الصورة
+      img.onerror = (e) => {
+        console.error(`فشل تحميل الصورة: ${src}`, e);
+        
+        // إذا فشل تحميل صورة القالب، نحاول تحميل الصورة الافتراضية (شعار الموقع)
+        if (src !== '/logo.svg') {
+          console.log('⚠️ جاري تحميل الصورة الافتراضية (شعار الموقع)...');
+          loadImage('/logo.svg');
+        }
+      };
       
-      // حساب حجم Stage المناسب ليناسب الحاوية مع الحفاظ على نسبة العرض إلى الارتفاع
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const containerHeight = containerRef.current.clientHeight || 600;
-        
-        // حساب مقياس لملاءمة الصورة في الحاوية
-        const widthRatio = containerWidth / img.naturalWidth;
-        const heightRatio = containerHeight / img.naturalHeight;
-        const newScale = Math.min(widthRatio, heightRatio, 1);
-        
-        console.log(`مقياس العرض: ${widthRatio.toFixed(2)}, مقياس الارتفاع: ${heightRatio.toFixed(2)}, المقياس المختار: ${newScale.toFixed(2)}`);
-        
-        setStageScale(newScale);
-      }
+      // بدء تحميل الصورة
+      img.src = src;
     };
-    img.src = templateImage;
     
-    // تسجيل أي أخطاء في تحميل الصورة
-    img.onerror = (e) => {
-      console.error('فشل تحميل صورة القالب:', e);
-    };
+    // محاولة تحميل صورة القالب أولًا
+    loadImage(templateImage);
   }, [templateImage]);
 
   // معالجة ضغط المفاتيح
