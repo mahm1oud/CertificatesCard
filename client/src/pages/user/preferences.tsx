@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest, queryClient, getQueryFn } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Sun, MonitorSmartphone, LayoutGrid, LayoutFluid } from 'lucide-react';
+import { Moon, Sun, MonitorSmartphone, LayoutGrid, LayoutFluid, Loader2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,8 +26,9 @@ export default function UserPreferences() {
   const { toast } = useToast();
   
   // جلب تفضيلات المستخدم
-  const { data: preferences, isLoading } = useQuery({
+  const { data: preferences, isLoading } = useQuery<PreferencesFormData>({
     queryKey: ['/api/user/preferences'],
+    queryFn: getQueryFn<PreferencesFormData>({ on401: 'redirect-to-login' }),
     refetchOnWindowFocus: false,
   });
   
@@ -53,10 +54,7 @@ export default function UserPreferences() {
   // تعريف التعامل مع الطلب
   const mutation = useMutation({
     mutationFn: (data: PreferencesFormData) => 
-      apiRequest('/api/user/preferences', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      apiRequest('POST', '/api/user/preferences', data),
     onSuccess: () => {
       toast({
         title: 'تم الحفظ',
