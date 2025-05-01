@@ -489,6 +489,10 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
                                         >
                                           {field.type === 'text' ? (
                                             <TextIcon className="w-5 h-5 ml-2" />
+                                          ) : field.type === 'dropdown' ? (
+                                            <ChevronsUpDown className="w-5 h-5 ml-2" />
+                                          ) : field.type === 'radio' ? (
+                                            <List className="w-5 h-5 ml-2" />
                                           ) : (
                                             <Image className="w-5 h-5 ml-2" />
                                           )}
@@ -1117,6 +1121,38 @@ export const AdvancedTemplateEditor: React.FC<AdvancedTemplateEditorProps> = ({
                               </FormControl>
                               <FormDescription>
                                 القيمة الافتراضية التي ستظهر في النموذج
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                          
+                          {/* القيمة الافتراضية للحقول المنسدلة والمتعددة */}
+                          {(selectedField.type === 'dropdown' || selectedField.type === 'radio') && selectedField.options && selectedField.options.length > 0 && (
+                            <FormItem>
+                              <FormLabel>القيمة الافتراضية</FormLabel>
+                              <Select
+                                value={selectedField.defaultValue || ''}
+                                onValueChange={(value) =>
+                                  handleFieldChange({
+                                    ...selectedField,
+                                    defaultValue: value,
+                                  })
+                                }
+                                disabled={readOnly}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="اختر القيمة الافتراضية" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">-- بدون قيمة افتراضية --</SelectItem>
+                                  {selectedField.options.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                القيمة الافتراضية المحددة مسبقًا في النموذج
                               </FormDescription>
                             </FormItem>
                           )}
