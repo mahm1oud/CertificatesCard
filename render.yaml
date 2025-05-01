@@ -1,20 +1,13 @@
-# منظومة Render لنشر مشروع إصدار البطاقات والشهادات
-
 services:
-  # خدمة الواجهة الخلفية (API)
+  # الواجهة الخلفية - API
   - type: web
     name: certificates-api
     env: node
-    repo: https://github.com/mahm1oud/server # تحديث هذا مع مستودع GitHub الخاص بك
-    region: ohio
-    buildCommand: |
-      npm install
-      # نسخ ملف vite.config.ts الى المجلد الحالي لحل مشكلة الاستيراد
-      cp -f vite.config.ts server/
-      # بناء المشروع
-      npm run build:server
-    startCommand: node server/dist/index.js
-    healthCheckPath: /health
+    region: frankfurt  # يمكن تغييره حسب المنطقة المناسبة
+    plan: starter  # يمكن تغييره حسب الخطة المطلوبة
+    buildCommand: cd render-deploy/backend && npm install && npm run build
+    startCommand: cd render-deploy/backend && node index.js
+    healthCheckPath: /health/ping
     envVars:
       - key: NODE_ENV
         value: production
@@ -27,34 +20,24 @@ services:
           name: certificates-db
           property: connectionString
       - key: ALLOWED_ORIGINS
-        sync: false
-    autoDeploy: false
-    disk:
-      name: uploads
-      mountPath: /app/uploads
-      sizeGB: 5
+        value: "https://certificates-frontend.onrender.com"
 
-  # خدمة الواجهة الأمامية (Website)
+  # الواجهة الأمامية - React
   - type: web
-    name: certificates-web
+    name: certificates-frontend
     env: static
+    region: frankfurt  # يمكن تغييره حسب المنطقة المناسبة
     buildCommand: cd client && npm install && npm run build
     staticPublishPath: ./client/dist
     envVars:
       - key: VITE_API_URL
-        sync: false # يحتاج إلى تعيين عنوان URL للخادم بعد النشر
-    autoDeploy: false
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: max-age=86400
+        value: "https://certificates-api.onrender.com"
 
 databases:
+  # قاعدة البيانات Postgres
   - name: certificates-db
-    region: ohio
-    databaseName: certificates
-    ipAllowList: []
-
-diskVolumes:
-  - name: uploads
-    sizeGB: 5
+    plan: starter  # يمكن تغييره حسب الخطة المطلوبة
+    region: frankfurt  # يمكن تغييره حسب المنطقة المناسبة
+    ipAllowList: []  # السماح للجميع بالوصول
+    postDeploy: |
+      npm run db:init
