@@ -1,25 +1,44 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-// الحصول على قاعدة URL للـ API من متغيرات البيئة
-const API_BASE_URL = import.meta.env.VITE_API_URL || ''; // فارغة تعني استخدام المسار النسبي (الحالي)
+/**
+ * الحصول على قاعدة عنوان API من متغيرات البيئة
+ * يستخدم VITE_API_URL إذا كان متوفراً، وإلا يستخدم عنوان محلي
+ * في بيئة التطوير: http://localhost:5000
+ * في بيئة الإنتاج: يجب تعيين VITE_API_URL
+ * @returns عنوان قاعدة API
+ */
+export function getApiBaseUrl(): string {
+  // الحصول على عنوان API من متغيرات البيئة
+  const apiUrl = import.meta.env.VITE_API_URL;
+  
+  // إذا كان العنوان متوفراً، استخدمه
+  if (apiUrl) {
+    return apiUrl;
+  }
+  
+  // إذا لم يكن متوفراً، استخدم عنوان محلي
+  console.warn('VITE_API_URL غير محدد، استخدام عنوان محلي: http://localhost:5000');
+  return 'http://localhost:5000';
+}
 
-// دالة مساعدة لبناء URL كاملة للـ API
-function getApiUrl(path: string): string {
-  // إذا كان المسار يحتوي على URL كاملة (مثل http://...)، استخدمه كما هو
-  if (path.startsWith('http')) {
+/**
+ * إنشاء عنوان URL كامل للوصول إلى API
+ * @param path مسار API
+ * @returns عنوان URL كامل
+ */
+export function createApiUrl(path: string): string {
+  const baseUrl = getApiBaseUrl();
+  
+  // إذا كان المسار يبدأ بـ http:// أو https://، فهو عنوان كامل بالفعل
+  if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   
-  // إذا كان المسار يبدأ بـ / فهو مسار نسبي
-  const apiPath = path.startsWith('/') ? path : `/${path}`;
+  // تأكد من أن المسار يبدأ بـ / وأن العنوان الأساسي لا ينتهي بـ /
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+  const formattedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   
-  // إضافة بادئة API إذا كان المسار لا يبدأ بـ /api/
-  if (!apiPath.startsWith('/api/')) {
-    return `${API_BASE_URL}/api${apiPath}`;
-  }
-  
-  // استخدام المسار كما هو مع إضافة قاعدة URL للـ API
-  return `${API_BASE_URL}${apiPath}`;
+  return `${formattedBaseUrl}${formattedPath}`;
 }
 
 async function throwIfResNotOk(res: Response) {
@@ -40,7 +59,7 @@ export async function apiRequest<T = any>(
     signal?: AbortSignal;
   }
 ): Promise<T> {
-  let url: string;
+  let path: string;
   let method: string = 'GET';
   let body: any = undefined;
   let on401: UnauthorizedBehavior = options?.on401 || "throw";
@@ -49,17 +68,17 @@ export async function apiRequest<T = any>(
   // معالجة مختلف أنماط الاستدعاء
   if (typeof urlOrMethod === 'string' && !['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(urlOrMethod)) {
     // الحالة: apiRequest(url, data, options)
-    url = getApiUrl(urlOrMethod);
+    path = urlOrMethod;
     body = urlOrData;
   } else if (typeof urlOrMethod === 'string' && typeof urlOrData === 'string') {
     // الحالة: apiRequest(method, url, data, options)
     method = urlOrMethod;
-    url = getApiUrl(urlOrData);
+    path = urlOrData;
     body = data;
   } else {
     // الحالة القديمة: apiRequest(url, { method, body }) - للتوافق مع الاستدعاءات السابقة
     if (typeof urlOrMethod === 'string') {
-      url = getApiUrl(urlOrMethod);
+      path = urlOrMethod;
       method = (urlOrData as any)?.method || 'GET';
       body = (urlOrData as any)?.body;
       // معالجة خيارات من النمط القديم
@@ -70,6 +89,9 @@ export async function apiRequest<T = any>(
       throw new Error('طريقة استدعاء غير صحيحة لدالة apiRequest');
     }
   }
+
+  // تحويل المسار إلى عنوان URL كامل
+  const url = createApiUrl(path);
 
   // إنشاء إشارة إلغاء للمهلة الزمنية
   const controller = new AbortController();
@@ -131,7 +153,9 @@ export const getQueryFn: <T>(options?: {
   (options = { on401: "throw" }) =>
   async ({ queryKey }) => {
     const unauthorizedBehavior = options?.on401 || "throw";
-    const url = getApiUrl(queryKey[0] as string);
+    
+    // تحويل المسار إلى عنوان URL كامل
+    const url = createApiUrl(queryKey[0] as string);
     
     const res = await fetch(url, {
       credentials: "include",

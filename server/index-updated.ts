@@ -1,90 +1,99 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { registerRoutes } from "./routes";
-import { log } from "./lib/logger";
 import path from "path";
-import multer from "multer";
+import session from "express-session";
+import passport from "passport";
+import { registerRoutes } from "./routes";
+import { setupAuth } from "./auth";
+import { storage } from "./storage";
+import { logger } from "./lib/logger";
 
-const app = express();
-
-// تكوين CORS لدعم الاستضافات المنفصلة
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['http://localhost:3000', 'https://your-frontend-domain.com'];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // السماح بطلبات من النوافذ نفسها (مثل الاختبار المحلي أو طلبات curl)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true // مهم لمشاركة ملفات تعريف الارتباط بين الخوادم والمواقع
-}));
-
-// إعداد المسار الثابت للملفات المرفوعة
-const uploadsDir = path.join(process.cwd(), 'uploads');
-app.use('/uploads', express.static(uploadsDir));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// للتسجيل
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-    if (capturedJsonResponse) {
-      logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-    }
-
-    if (logLine.length > 80) {
-      logLine = logLine.slice(0, 79) + "…";
-    }
-
-    log(logLine);
-  });
-
-  next();
-});
+// تكوين CORS البسيط للسماح بوصول الواجهة الأمامية من مصادر مختلفة
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173').split(',');
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // إنشاء تطبيق Express
+    const app = express();
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // تكوين CORS للسماح بالوصول من مصادر محددة
+    app.use(cors({
+      origin: function(origin, callback) {
+        // السماح بالطلبات بدون أصل (مثل الطلبات من المتصفح مباشرة أو من بوستمان)
+        if (!origin) return callback(null, true);
+        
+        // التحقق مما إذا كان الأصل مسموحًا به
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+          callback(null, true);
+        } else {
+          logger.warn(`CORS: Origin ${origin} not allowed`);
+          callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    }));
+    
+    // عرض النطاقات المسموح بها في السجل
+    logger.info(`CORS: Allowed origins: ${allowedOrigins.join(', ')}`);
 
-    res.status(status).json({ message });
-    console.error("Error:", err);
-  });
+    // تكوين محلل JSON
+    app.use(express.json());
 
-  // إضافة مسار تجريبي للتحقق من عمل الـ API
-  app.get('/api/status', (req, res) => {
-    res.json({ status: 'API is running', environment: process.env.NODE_ENV });
-  });
+    // إعداد الجلسات
+    const sessionOptions: session.SessionOptions = {
+      secret: process.env.SESSION_SECRET || "development-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      store: storage.sessionStore,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
+      },
+    };
 
-  // استخدام المنفذ من متغيرات البيئة أو الافتراضي 5000
-  const port = process.env.PORT || 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`API server running on port ${port}`);
-  });
+    app.use(session(sessionOptions));
+
+    // تكوين Passport.js للمصادقة
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // إعداد المصادقة
+    setupAuth(app);
+
+    // إعداد المسارات الثابتة
+    const staticPath = path.resolve(
+      process.cwd(),
+      process.env.NODE_ENV === "production" ? "../client/dist" : "../client/static"
+    );
+    console.log(`Serving static files from: ${staticPath}`);
+    app.use(express.static(staticPath));
+
+    // إعداد المسارات الثابتة للملفات المرفوعة
+    const uploadsPath = path.resolve(process.cwd(), "../uploads");
+    app.use("/uploads", express.static(uploadsPath));
+
+    // تسجيل المسارات الخاصة بالتطبيق
+    const server = await registerRoutes(app);
+
+    // معالجة الأخطاء العامة
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error(err);
+      res.status(err.status || 500).json({
+        message: err.message || "حدث خطأ غير متوقع",
+        error: process.env.NODE_ENV === "development" ? err : {},
+      });
+    });
+
+    // الاستماع إلى المنفذ
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+      console.log(`[express] serving on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
 })();
