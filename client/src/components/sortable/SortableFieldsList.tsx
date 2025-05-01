@@ -38,12 +38,19 @@ export function SortableFieldsList({
   description = "يمكنك سحب وإفلات الحقول لتغيير ترتيبها، أو استخدام أزرار الأسهم للتحريك لأعلى أو لأسفل."
 }: SortableFieldsListProps) {
   // نسخة من الحقول يمكن تعديلها
-  const [orderedFields, setOrderedFields] = useState<TemplateField[]>(
-    [...fields].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
-  );
+  const [orderedFields, setOrderedFields] = useState<TemplateField[]>([]);
   
   // حالة التحميل
   const [isSaving, setIsSaving] = useState(false);
+  
+  // تحديث الحقول المرتبة عندما تتغير الحقول الأصلية أو عندما يتم فتح المربع الحواري
+  React.useEffect(() => {
+    if (isOpen && fields && fields.length > 0) {
+      console.log("تحديث الحقول المرتبة:", fields);
+      const sortedFields = [...fields].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      setOrderedFields(sortedFields);
+    }
+  }, [fields, isOpen]);
 
   // معالجة نهاية عملية السحب والإفلات
   const handleDragEnd = (result: any) => {

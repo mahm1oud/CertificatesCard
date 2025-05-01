@@ -17,14 +17,20 @@ const CustomForm = ({ onChange, template }: CustomFormProps) => {
   const customFields = template?.templateFields || [];
   
   // استخدام الحقول المخصصة من القالب إذا كانت متوفرة وإلا استخدم الحقول الافتراضية
-  const fields = customFields.length > 0 ? customFields : 
+  let fields = customFields.length > 0 ? customFields : 
     template?.fields ? template.fields.map((field: string) => ({
       name: field,
       label: getDefaultFieldLabel(field),
       type: getDefaultFieldType(field),
       required: isFieldRequired(field),
       placeholder: getDefaultFieldPlaceholder(field),
+      displayOrder: 0, // قيمة افتراضية للترتيب
     })) : [];
+    
+  // ترتيب الحقول حسب خاصية displayOrder
+  fields = [...fields].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  
+  console.log("Fields after sorting by displayOrder:", fields);
   
   // إنشاء حالة افتراضية تعتمد على الحقول المتاحة في القالب
   const initialState: Record<string, any> = {};
