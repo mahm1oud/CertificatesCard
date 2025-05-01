@@ -1,12 +1,17 @@
 /**
  * مكون معاينة محسّن للبطاقات والشهادات
- * الإصدار 3.0 - أبريل 2025
+ * الإصدار 3.1 - مايو 2025
  * 
  * ميزات هذا المكون المحسّن:
  * 1. يضمن تطابق 100% بين المعاينة والصورة النهائية
  * 2. يستخدم نفس خوارزمية الحساب الموجودة في السيرفر
  * 3. أكثر قابلية للصيانة وإعادة الاستخدام
  * 4. كود أكثر إيجازاً وأسهل للقراءة
+ * 
+ * تحديثات الإصدار 3.1:
+ * - توحيد معامل القياس بين السيرفر والواجهة (BASE_IMAGE_WIDTH = 1000)
+ * - إضافة معالجة إزاحة الظلال (shadowOffset) لمطابقة السيرفر
+ * - تحسين لون وقيم الظلال للتطابق مع طريقة الرسم في السيرفر
  */
 
 import React, { useRef, useState, useEffect } from 'react';
@@ -15,7 +20,7 @@ import { Stage, Layer, Image, Text } from 'react-konva';
 /**
  * مهم جداً: هذه القيمة يجب أن تكون متطابقة مع
  * 1. BASE_IMAGE_WIDTH في DraggableFieldsPreviewPro.tsx
- * 2. clientBaseWidth في server/optimized-image-generator.ts
+ * 2. BASE_IMAGE_WIDTH في server/optimized-image-generator.ts
  * لضمان التطابق 100% بين المعاينة والصورة النهائية
  */
 const BASE_IMAGE_WIDTH = 1000;
@@ -163,8 +168,10 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
     
     // ظل النص من خصائص الحقل
     const shadowEnabled = style.textShadow?.enabled || false;
-    const shadowColor = shadowEnabled ? (style.textShadow?.color || 'black') : 'transparent';
+    const shadowColor = shadowEnabled ? (style.textShadow?.color || 'rgba(0, 0, 0, 0.5)') : 'transparent';
     const shadowBlur = shadowEnabled ? (style.textShadow?.blur || 3) * scaleFactor : 0;
+    const shadowOffsetX = shadowEnabled ? 2 * scaleFactor : 0;
+    const shadowOffsetY = shadowEnabled ? 2 * scaleFactor : 0;
     
     // لون النص من خصائص الحقل
     const textColor = style.color || '#000000';
@@ -184,7 +191,7 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
       offsetX,
       shadowColor,
       shadowBlur,
-      shadowOffset: { x: 0, y: 0 },
+      shadowOffset: { x: shadowOffsetX, y: shadowOffsetY },
       perfectDrawEnabled: true,
     };
   };

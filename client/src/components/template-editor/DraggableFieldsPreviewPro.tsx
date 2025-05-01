@@ -27,6 +27,7 @@ interface EditorSettings {
   snapToGrid?: boolean;
   gridSize?: number;
   snapThreshold?: number;
+  templateImageLayer?: number; // رقم طبقة صورة القالب
 }
 
 interface FieldType {
@@ -36,12 +37,18 @@ interface FieldType {
   type: 'text' | 'image';
   position: { x: number; y: number, snapToGrid?: boolean };
   style?: any;
+  zIndex?: number;
+  visible?: boolean;
+  rotation?: number;
+  size?: { width: number; height: number };
 }
 
 interface DraggableFieldsPreviewProProps {
   templateImage: string;
   fields: FieldType[];
   onFieldsChange: (fields: FieldType[]) => void;
+  onFieldSelect?: (fieldId: number | null) => void;
+  selectedFieldId?: number | null;
   editorSettings?: EditorSettings;
   width?: number;
   height?: number;
@@ -52,6 +59,8 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
   templateImage,
   fields,
   onFieldsChange,
+  onFieldSelect,
+  selectedFieldId,
   editorSettings,
   className
 }) => {
@@ -433,22 +442,37 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
     const fieldHeight = (style.height || 100) * (imageSize.width / BASE_IMAGE_WIDTH);
     
     const isSelected = selectedIds.includes(field.id);
+    
+    // إذا كان الحقل غير مرئي، لا نعرضه
+    if (field.visible === false) {
+      return null;
+    }
+    
+    // إضافة تدوير للحقل إذا كانت قيمة التدوير محددة
+    const rotation = field.rotation || 0;
 
     if (field.type === 'text') {
       return (
-        <Text
-          text={field.label || field.name}
-          fontSize={fontSize}
-          fontFamily={style.fontFamily || 'Cairo'}
-          fontStyle={style.fontWeight === 'bold' ? 'bold' : 'normal'}
-          fill={style.color || '#1e293b'}
-          align={style.align || 'center'}
-          width={fieldWidth}
-          offsetX={style.align === 'center' ? fieldWidth / 2 : 0}
-          offsetY={fontSize / 2}
-          stroke={isSelected ? '#3b82f6' : undefined}
-          strokeWidth={isSelected ? 1 : 0}
-        />
+        <Group rotation={rotation}>
+          <Text
+            text={field.label || field.name}
+            fontSize={fontSize}
+            fontFamily={style.fontFamily || 'Cairo'}
+            fontStyle={style.fontWeight === 'bold' ? 'bold' : 'normal'}
+            fill={style.color || '#1e293b'}
+            align={style.align || 'center'}
+            width={fieldWidth}
+            offsetX={style.align === 'center' ? fieldWidth / 2 : 0}
+            offsetY={fontSize / 2}
+            stroke={isSelected ? '#3b82f6' : undefined}
+            strokeWidth={isSelected ? 1 : 0}
+            // إضافة ظل النص إذا كان مفعل في الستايل
+            shadowColor={style.textShadow?.enabled ? (style.textShadow.color || 'rgba(0, 0, 0, 0.5)') : undefined}
+            shadowBlur={style.textShadow?.enabled ? (style.textShadow.blur || 3) : 0}
+            shadowOffset={style.textShadow?.enabled ? { x: 2, y: 2 } : { x: 0, y: 0 }}
+            shadowOpacity={style.textShadow?.enabled ? 0.5 : 0}
+          />
+        </Group>
       );
     }
     
@@ -457,16 +481,23 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
       const imgHeight = style.imageMaxHeight || Math.round(imageSize.height / 4);
       
       return (
-        <Rect
-          width={imgWidth}
-          height={imgHeight}
-          fill="#e0f2fe"
-          stroke={isSelected ? "#3b82f6" : "#0ea5e9"}
-          strokeWidth={isSelected ? 2 : 1}
-          cornerRadius={8}
-          offsetX={imgWidth / 2}
-          offsetY={imgHeight / 2}
-        />
+        <Group rotation={rotation}>
+          <Rect
+            width={imgWidth}
+            height={imgHeight}
+            fill="#e0f2fe"
+            stroke={isSelected ? "#3b82f6" : "#0ea5e9"}
+            strokeWidth={isSelected ? 2 : 1}
+            cornerRadius={style.imageRounded ? Math.min(imgWidth, imgHeight) / 2 : 8}
+            offsetX={imgWidth / 2}
+            offsetY={imgHeight / 2}
+            // إضافة ظل الصورة إذا كان مفعل في الستايل
+            shadowColor={style.imageShadow?.enabled ? (style.imageShadow.color || 'rgba(0, 0, 0, 0.5)') : undefined}
+            shadowBlur={style.imageShadow?.enabled ? (style.imageShadow.blur || 5) : 0}
+            shadowOffset={style.imageShadow?.enabled ? { x: 3, y: 3 } : { x: 0, y: 0 }}
+            shadowOpacity={style.imageShadow?.enabled ? 0.6 : 0}
+          />
+        </Group>
       );
     }
   };
@@ -566,12 +597,14 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           setGuidelines({});
         }}
       >
+        {/* طبقة صورة القالب مع تحكم نمطي zIndex */}
         <Layer>
           {backgroundImage && (
             <KonvaImage
               image={backgroundImage}
               width={imageSize.width}
               height={imageSize.height}
+              zIndex={editorSettings?.templateImageLayer !== undefined ? editorSettings.templateImageLayer : 10}
             />
           )}
         </Layer>
@@ -581,13 +614,28 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
         </Layer>
 
         <Layer>
-          {fields.map((field) => (
+          {/* ترتيب الحقول حسب خاصية zIndex لضمان سلوك متطابق مع مولد الصور */}
+          {fields
+            .slice() // نسخة لتجنب تغيير المصفوفة الأصلية
+            .sort((a, b) => {
+              // ترتيب تصاعدي حسب الزاوية لضمان الطبقات
+              const zIndexA = a.zIndex !== undefined ? a.zIndex : 0;
+              const zIndexB = b.zIndex !== undefined ? b.zIndex : 0;
+              return zIndexA - zIndexB;
+            })
+            .map((field) => (
             <Group
               key={field.id}
               x={getFieldPosition(field).x}
               y={getFieldPosition(field).y}
               draggable
+              visible={field.visible !== false} // إضافة خاصية الرؤية
+              opacity={field.visible === false ? 0 : 1} // إضافة شفافية للحقول المخفية
+              rotation={field.rotation || 0} // إضافة خاصية الدوران
               onClick={(e) => {
+                // منع انتشار الحدث
+                e.cancelBubble = true;
+                
                 // إذا كان Shift مضغوطًا أضف/احذف الحقل من التحديد
                 if (e.evt.shiftKey) {
                   setSelectedIds(prev => 
@@ -595,9 +643,23 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
                       ? prev.filter(id => id !== field.id)
                       : [...prev, field.id]
                   );
+                  
+                  // إبلاغ المكون الأب بالتحديد (إذا تم توفير دالة onFieldSelect)
+                  if (onFieldSelect) {
+                    const currentIds = selectedIds.includes(field.id)
+                      ? selectedIds.filter(id => id !== field.id)
+                      : [...selectedIds, field.id];
+                    
+                    onFieldSelect(currentIds.length > 0 ? currentIds[currentIds.length - 1] : null);
+                  }
                 } else {
                   // وإلا حدد فقط هذا الحقل
                   setSelectedIds([field.id]);
+                  
+                  // إبلاغ المكون الأب بالتحديد (إذا تم توفير دالة onFieldSelect)
+                  if (onFieldSelect) {
+                    onFieldSelect(field.id);
+                  }
                 }
               }}
               onDragStart={() => {

@@ -31,16 +31,16 @@ export const DisplaySettingsForm: React.FC<DisplaySettingsFormProps> = ({ onChan
   
   // استعلام عن الإعدادات الحالية
   const { data: settings, isLoading } = useQuery<{ settings: DisplaySettings }>({
-    queryKey: ['/api/admin/settings/display'],
+    queryKey: ['/api/display-settings'],
     queryFn: ({ queryKey }) => apiRequest('GET', queryKey[0], undefined, { on401: 'redirect-to-login' }),
   });
   
-  // mutation لحفظ الإعدادات
+  // mutation لحفظ الإعدادات باستخدام المسار الموحد
   const mutation = useMutation({
     mutationFn: (data: DisplaySettings) => 
-      apiRequest('POST', '/api/admin/settings/display', data, { on401: 'redirect-to-login' }),
+      apiRequest('POST', '/api/display-settings', data, { on401: 'redirect-to-login' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/display'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/display-settings'] });
       toast({
         title: t('admin.settings.saved'),
         description: t('admin.settings.savedDescription'),

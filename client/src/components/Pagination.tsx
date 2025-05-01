@@ -1,97 +1,133 @@
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PaginationProps {
   currentPage: number;
+  totalPages: number;
   totalItems: number;
   itemsPerPage: number;
   onPageChange: (page: number) => void;
 }
 
-export default function Pagination({ 
-  currentPage, 
-  totalItems, 
-  itemsPerPage, 
-  onPageChange 
+export function Pagination({
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
 }: PaginationProps) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  
-  if (totalPages <= 1) return null;
-  
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
-  
-  const handlePrevious = () => {
-    if (currentPage > 1) {
-      onPageChange(currentPage - 1);
-    }
-  };
-  
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      onPageChange(currentPage + 1);
-    }
-  };
-  
-  // Generate array of page numbers to display
-  const getPageNumbers = () => {
+
+  const renderPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
     
-    if (totalPages <= maxPagesToShow) {
-      // Show all pages if total pages is less than maxPagesToShow
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      // Calculate start and end of page range
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(start + 2, totalPages - 1);
-      
-      // Adjust start if end is too close to totalPages
-      if (end === totalPages - 1) {
-        start = Math.max(2, end - 2);
-      }
-      
-      // Add ellipsis if there's a gap after page 1
-      if (start > 2) {
-        pages.push(-1); // Use -1 to represent ellipsis
-      }
-      
-      // Add middle pages
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      
-      // Add ellipsis if there's a gap before last page
-      if (end < totalPages - 1) {
-        pages.push(-2); // Use -2 to represent ellipsis (needs different key)
-      }
-      
-      // Always show last page
-      pages.push(totalPages);
-    }
+    // Calculate the range of page numbers to display
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
     
+    if (endPage - startPage + 1 < maxPagesToShow && startPage > 1) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+
+    // Add first page
+    if (startPage > 1) {
+      pages.push(
+        <Button
+          key={1}
+          variant={currentPage === 1 ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium",
+            currentPage === 1 && "z-10 bg-primary-50 border-primary-500 text-primary-600"
+          )}
+          onClick={() => onPageChange(1)}
+        >
+          1
+        </Button>
+      );
+      
+      // Add ellipsis if needed
+      if (startPage > 2) {
+        pages.push(
+          <span
+            key="start-ellipsis"
+            className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+          >
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Add page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      if (i !== 1 && i !== totalPages) { // Avoid duplicating first and last page
+        pages.push(
+          <Button
+            key={i}
+            variant={currentPage === i ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium",
+              currentPage === i && "z-10 bg-primary-50 border-primary-500 text-primary-600"
+            )}
+            onClick={() => onPageChange(i)}
+          >
+            {i}
+          </Button>
+        );
+      }
+    }
+
+    // Add ellipsis if needed
+    if (endPage < totalPages - 1) {
+      pages.push(
+        <span
+          key="end-ellipsis"
+          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+        >
+          ...
+        </span>
+      );
+    }
+
+    // Add last page
+    if (endPage < totalPages) {
+      pages.push(
+        <Button
+          key={totalPages}
+          variant={currentPage === totalPages ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium",
+            currentPage === totalPages && "z-10 bg-primary-50 border-primary-500 text-primary-600"
+          )}
+          onClick={() => onPageChange(totalPages)}
+        >
+          {totalPages}
+        </Button>
+      );
+    }
+
     return pages;
   };
-  
+
   return (
-    <div className="mt-8 flex items-center justify-between">
+    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 mt-6 rounded-lg shadow">
       <div className="flex-1 flex justify-between sm:hidden">
         <Button
           variant="outline"
-          onClick={handlePrevious}
           disabled={currentPage === 1}
+          onClick={() => onPageChange(currentPage - 1)}
         >
           السابق
         </Button>
         <Button
           variant="outline"
-          onClick={handleNext}
           disabled={currentPage === totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
         >
           التالي
         </Button>
@@ -99,61 +135,39 @@ export default function Pagination({
       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-gray-700">
-            عرض 
+            عرض
             <span className="font-medium mx-1">{startItem}</span>
-            إلى 
+            إلى
             <span className="font-medium mx-1">{endItem}</span>
             من
             <span className="font-medium mx-1">{totalItems}</span>
-            شهادة
+            نتيجة
           </p>
         </div>
         <div>
-          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="التنقل بين الصفحات">
+          <nav className="relative z-0 inline-flex rounded-md shadow-sm pagination-nav" aria-label="Pagination">
             <Button
               variant="outline"
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md text-sm"
-              onClick={handlePrevious}
+              size="sm"
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               disabled={currentPage === 1}
+              onClick={() => onPageChange(currentPage - 1)}
             >
               <span className="sr-only">السابق</span>
-              <ChevronRight className="h-5 w-5" />
+              <i className="fas fa-chevron-right h-5 w-5"></i>
             </Button>
             
-            {getPageNumbers().map((pageNum, idx) => (
-              pageNum < 0 ? (
-                // Render ellipsis
-                <span 
-                  key={`ellipsis-${pageNum}`} 
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                >
-                  ...
-                </span>
-              ) : (
-                // Render page number
-                <Button
-                  key={pageNum}
-                  variant={currentPage === pageNum ? "default" : "outline"}
-                  className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
-                    currentPage === pageNum 
-                      ? "bg-primary text-white" 
-                      : "bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
-                  onClick={() => onPageChange(pageNum)}
-                >
-                  {pageNum}
-                </Button>
-              )
-            ))}
+            {renderPageNumbers()}
             
             <Button
               variant="outline"
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md text-sm"
-              onClick={handleNext}
+              size="sm"
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
               disabled={currentPage === totalPages}
+              onClick={() => onPageChange(currentPage + 1)}
             >
               <span className="sr-only">التالي</span>
-              <ChevronLeft className="h-5 w-5" />
+              <i className="fas fa-chevron-left h-5 w-5"></i>
             </Button>
           </nav>
         </div>
