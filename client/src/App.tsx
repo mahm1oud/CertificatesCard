@@ -17,6 +17,7 @@ import { I18nProvider, useTranslation } from "@/lib/i18n";
 import { ThemeProvider } from "next-themes";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import TemplateEditorUnified from "@/pages/template-editor-unified";
 
 // Lazy load admin and auth pages
 const AuthPage = lazy(() => import("@/pages/auth-page"));
@@ -136,6 +137,7 @@ function Router() {
             <Route path="/certificates/preview/:certificateId" component={CertificatePreview} />
             <Route path="/certificate/:certificateId" component={FullCertificateView} />
             <Route path="/template-editor/:id" component={TemplateEditor} />
+            <Route path="/template-editor-unified/:id?" component={TemplateEditorUnified} />
             <Route path="/social-template-editor/:templateId" component={SocialTemplateEditor} />
 
             {/* User routes (protected) */}
