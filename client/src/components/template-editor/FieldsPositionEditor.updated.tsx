@@ -795,7 +795,7 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
                 snapToGrid,
                 gridSize,
                 snapThreshold,
-                templateImageLayer
+                templateImageLayer: 0
               }}
               formData={embeddedProps.formData || {}}
             />
@@ -992,24 +992,8 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
                         <div className="space-y-2">
                           <Label>صورة القالب</Label>
                           <div className="flex items-center space-x-2">
-                            <Label className="flex-grow text-sm text-gray-500 flex items-center">
-                              {templateImageLayer === 0 ? 
-                                <>
-                                  <span className="inline-block p-1 border rounded mr-1">
-                                    <Layers className="h-3 w-3 text-blue-500" />
-                                    <ArrowDown className="h-3 w-3 text-gray-400" />
-                                  </span>
-                                  خلف جميع الحقول
-                                </> 
-                                : 
-                                <>
-                                  <span className="inline-block p-1 border rounded mr-1">
-                                    <ArrowUp className="h-3 w-3 text-gray-400" />
-                                    <Layers className="h-3 w-3 text-blue-500" />
-                                  </span>
-                                  أمام جميع الحقول
-                                </>
-                              }
+                            <Label className="flex-grow text-sm text-gray-500">
+                              {templateImageLayer === 0 ? 'خلف جميع الحقول' : 'أمام جميع الحقول'}
                             </Label>
                             <Button 
                               variant="outline"

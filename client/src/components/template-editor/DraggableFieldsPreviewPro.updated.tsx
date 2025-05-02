@@ -88,7 +88,6 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
   const [isTemplateImageLoaded, setIsTemplateImageLoaded] = useState(false);
   const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [templateImageObj, setTemplateImageObj] = useState<HTMLImageElement | null>(null);
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -96,10 +95,6 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
   const [future, setFuture] = useState<FieldType[][]>([]);
   const [guidelines, setGuidelines] = useState<any>({});
   const [isTransforming, setIsTransforming] = useState(false);
-  
-  // حالة موضع صورة القالب
-  const [templateImagePosition, setTemplateImagePosition] = useState({ x: 0, y: 0 });
-  const [isTemplateImageDraggable, setIsTemplateImageDraggable] = useState(false);
   
   // تحميل صورة القالب
   useEffect(() => {
@@ -111,7 +106,6 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
     
     image.onload = () => {
       setIsTemplateImageLoaded(true);
-      setTemplateImageObj(image);
       
       // حساب الأبعاد المناسبة مع الحفاظ على نسبة العرض إلى الارتفاع
       const containerWidth = containerRef.current?.clientWidth || 800;
@@ -124,17 +118,11 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
       // إعادة تعيين موضع المرحلة بعد تحميل الصورة
       setStagePos({ x: 0, y: 0 });
       setStageScale(1);
-      
-      // إعادة رسم الطبقة
-      if (templateImageRef.current) {
-        templateImageRef.current.getLayer()?.batchDraw();
-      }
     };
     
     image.onerror = () => {
       console.error('Error loading template image');
       setIsTemplateImageLoaded(false);
-      setTemplateImageObj(null);
     };
   }, [templateImage]);
   
@@ -841,35 +829,25 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           {renderGrid()}
 
           {/* رسم صورة القالب */}
-          {templateImageLayer === 0 && templateImageObj && (
-            <Group
-              draggable={isTemplateImageDraggable}
-              x={templateImagePosition.x}
-              y={templateImagePosition.y}
-              onClick={() => {
-                // عند النقر على صورة القالب، نقوم بإلغاء تحديد كل الحقول
-                if (onFieldSelect) {
-                  onFieldSelect(null);
-                }
-                setSelectedIds([]);
-                
-                // تفعيل أو تعطيل إمكانية السحب للصورة عند النقر عليها
-                setIsTemplateImageDraggable(!isTemplateImageDraggable);
+          {templateImageLayer === 0 && (
+            <KonvaImage
+              ref={templateImageRef}
+              image={new window.Image()}
+              width={imageSize.width}
+              height={imageSize.height}
+              onLoad={e => {
+                const img = e.target;
+                img.getLayer().batchDraw();
               }}
-              onDragEnd={(e) => {
-                setTemplateImagePosition({
-                  x: e.target.x(),
-                  y: e.target.y()
-                });
+              setAttrs={{
+                image: (() => {
+                  const img = new window.Image();
+                  img.crossOrigin = 'Anonymous';
+                  img.src = templateImage;
+                  return img;
+                })(),
               }}
-            >
-              <KonvaImage
-                ref={templateImageRef}
-                image={templateImageObj}
-                width={imageSize.width}
-                height={imageSize.height}
-              />
-            </Group>
+            />
           )}
 
           {/* رسم خطوط الإرشاد */}
@@ -886,35 +864,25 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
             })}
 
           {/* رسم صورة القالب فوق الحقول إذا كان templateImageLayer !== 0 */}
-          {templateImageLayer !== 0 && templateImageObj && (
-            <Group
-              draggable={isTemplateImageDraggable}
-              x={templateImagePosition.x}
-              y={templateImagePosition.y}
-              onClick={() => {
-                // عند النقر على صورة القالب، نقوم بإلغاء تحديد كل الحقول
-                if (onFieldSelect) {
-                  onFieldSelect(null);
-                }
-                setSelectedIds([]);
-                
-                // تفعيل أو تعطيل إمكانية السحب للصورة عند النقر عليها
-                setIsTemplateImageDraggable(!isTemplateImageDraggable);
+          {templateImageLayer !== 0 && (
+            <KonvaImage
+              ref={templateImageRef}
+              image={new window.Image()}
+              width={imageSize.width}
+              height={imageSize.height}
+              onLoad={e => {
+                const img = e.target;
+                img.getLayer().batchDraw();
               }}
-              onDragEnd={(e) => {
-                setTemplateImagePosition({
-                  x: e.target.x(),
-                  y: e.target.y()
-                });
+              setAttrs={{
+                image: (() => {
+                  const img = new window.Image();
+                  img.crossOrigin = 'Anonymous';
+                  img.src = templateImage;
+                  return img;
+                })(),
               }}
-            >
-              <KonvaImage
-                ref={templateImageRef}
-                image={templateImageObj}
-                width={imageSize.width}
-                height={imageSize.height}
-              />
-            </Group>
+            />
           )}
 
           {/* Transformer للتحجيم والتدوير */}

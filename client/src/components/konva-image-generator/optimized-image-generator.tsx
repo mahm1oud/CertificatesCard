@@ -14,7 +14,7 @@
  * - تحسين لون وقيم الظلال للتطابق مع طريقة الرسم في السيرفر
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Stage, Layer, Image, Text } from 'react-konva';
 
 /**
@@ -30,6 +30,9 @@ interface FieldConfig {
   label?: string;
   defaultValue?: string;
   position: { x: number; y: number };
+  rotation?: number; // إضافة دعم الدوران
+  visible?: boolean; // إضافة دعم الرؤية
+  zIndex?: number;   // إضافة دعم ترتيب الطبقات
   style?: {
     fontFamily?: string;
     fontSize?: number;
@@ -70,6 +73,18 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
   const stageRef = useRef<any>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageSize, setStageSize] = useState({ width, height });
+  
+  // استخدام الحقول المخصصة من formData._designFields إذا كانت متوفرة
+  const effectiveFields = useMemo(() => {
+    // التحقق من وجود حقول مخصصة في بيانات النموذج
+    if (formData._designFields && Array.isArray(formData._designFields) && formData._designFields.length > 0) {
+      console.log("استخدام حقول التصميم المخصصة:", formData._designFields.length);
+      return formData._designFields;
+    }
+    // إذا لم تكن هناك حقول مخصصة، استخدم الحقول الأصلية
+    console.log("استخدام حقول التصميم الأصلية:", fields.length);
+    return fields;
+  }, [fields, formData._designFields]);
   
   // تحميل صورة القالب
   useEffect(() => {
@@ -178,6 +193,9 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
     
     console.log(`Field ${field.name}: font="${fontFamily} ${fontWeight} ${fontSize}px", color=${textColor}, scaleFactor=${scaleFactor.toFixed(2)}, x=${x}, y=${y}`);
     
+    // دعم الدوران (إذا كان موجوداً)
+    const rotation = field.rotation || 0;
+    
     return {
       text: getFieldValue(field),
       x,
@@ -189,9 +207,13 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
       align,
       width,
       offsetX,
+      // إضافة دعم الدوران
+      rotation,
       shadowColor,
       shadowBlur,
       shadowOffset: { x: shadowOffsetX, y: shadowOffsetY },
+      // تعيين الرؤية (إذا كانت موجودة)
+      visible: field.visible !== false, // افتراضيًا مرئي ما لم يتم تعيينه على false
       perfectDrawEnabled: true,
     };
   };
@@ -241,7 +263,7 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
       
       return () => clearTimeout(timer);
     }
-  }, [image, fields, formData, stageSize, quality]);
+  }, [image, effectiveFields, formData, stageSize, quality]);
 
   return (
     <div className={`relative ${className}`}>
@@ -262,13 +284,17 @@ export const OptimizedImageGenerator: React.FC<OptimizedImageGeneratorProps> = (
             />
           )}
           
-          {/* رسم الحقول */}
-          {fields.map((field, index) => (
-            <Text 
-              key={`${field.name}-${index}`} 
-              {...getTextProps(field)}
-            />
-          ))}
+          {/* رسم الحقول بترتيب حسب zIndex */}
+          {[...effectiveFields]
+            // ترتيب الحقول حسب zIndex (تصاعدي) بحيث تظهر الحقول ذات zIndex العالي فوق الحقول ذات zIndex المنخفض
+            .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+            // رسم كل حقل حسب النوع وخصائصه
+            .map((field, index) => (
+              <Text 
+                key={`${field.name}-${index}`} 
+                {...getTextProps(field)}
+              />
+            ))}
         </Layer>
       </Stage>
     </div>
