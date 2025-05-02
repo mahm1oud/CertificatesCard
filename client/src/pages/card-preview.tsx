@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import ShareOptions from "@/components/share-options";
 import { downloadImage } from "@/lib/utils";
-import { Loader2, Eye, Download, X, RefreshCw, Save, Trash } from "lucide-react";
+import { Loader2, Eye, Download, X, RefreshCw, Save, Trash, Paintbrush, Edit, Palette } from "lucide-react";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import KonvaImageGenerator from "@/components/konva-image-generator";
+import { FieldsPositionEditor } from "@/components/template-editor/FieldsPositionEditor";
 import {
   Select,
   SelectContent,
@@ -252,6 +253,34 @@ const CardPreview = () => {
     setIsRegenerating(true);
     setPreviewUrl(null); // إزالة الصورة الحالية
   };
+  
+  // تحديث حقول التصميم
+  const handleFieldsUpdated = async (updatedFields: any[]) => {
+    console.log("تم تحديث حقول التصميم:", updatedFields);
+    setUpdatedFields(updatedFields);
+    
+    // إعادة توليد الصورة باستخدام الحقول المحدثة
+    setIsRegenerating(true);
+    setPreviewUrl(null);
+    
+    try {
+      // حفظ تحديثات التصميم في قاعدة البيانات إذا كانت البطاقة محفوظة
+      if (card?.id && card.status === 'saved') {
+        await apiRequest('PATCH', `/api/cards/${card.id}/update-design`, {
+          fields: updatedFields
+        });
+        
+        toast({
+          title: "تم التحديث",
+          description: "تم تحديث تصميم البطاقة وحفظ التغييرات"
+        });
+      }
+    } catch (error) {
+      console.error("خطأ في تحديث التصميم:", error);
+      // لا نظهر خطأ للمستخدم هنا، لأن الصورة ستتولد محلياً على أي حال
+      console.log("سيتم استخدام التصميم المحدث محلياً فقط");
+    }
+  };
 
   const handleViewFullCard = () => {
     // استخدام المعرف العام (publicId) بدلاً من معرف البطاقة الداخلي
@@ -269,6 +298,10 @@ const CardPreview = () => {
 
   // حفظ البطاقة
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  
+  // محرر التصميم
+  const [isDesignEditorOpen, setIsDesignEditorOpen] = useState(false);
+  const [updatedFields, setUpdatedFields] = useState<TemplateField[]>([]);
   
   // حفظ البطاقة في نماذجي
   const saveCardMutation = useMutation({
@@ -479,7 +512,7 @@ const CardPreview = () => {
                 <div className="rounded-md shadow-md bg-white flex items-center justify-center" style={{ maxHeight: 'calc(95vh-140px)' }}>
                   <KonvaImageGenerator
                     templateImage={card.template?.imageUrl || ''}
-                    fields={templateFields}
+                    fields={updatedFields.length > 0 ? updatedFields : templateFields}
                     formData={card.formData || {}}
                     width={400}
                     height={600}
@@ -521,6 +554,16 @@ const CardPreview = () => {
               >
                 <Eye className="h-4 w-4" />
                 عرض
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => setIsDesignEditorOpen(true)}
+                className="flex items-center gap-1"
+                size="sm"
+              >
+                <Palette className="h-4 w-4" />
+                تعديل التصميم
               </Button>
               
               {showQualitySelector ? (
@@ -660,7 +703,137 @@ const CardPreview = () => {
           </div>
         </div>
       </div>
+      
+      {/* محرر تصميم البطاقة */}
+      <DesignEditorDialog
+        isOpen={isDesignEditorOpen}
+        onClose={() => setIsDesignEditorOpen(false)}
+        templateId={card.templateId}
+        templateFields={templateFields}
+        formData={card.formData || {}}
+        // استخدام صورة البطاقة نفسها أو صورة القالب كاحتياطي
+        templateImage={card.template?.imageUrl || card.imageUrl || ''}
+        onFieldsUpdated={handleFieldsUpdated}
+      />
     </div>
+  );
+};
+
+// الستايل الخاص بمحرر التصميم
+const DesignEditorDialog = ({ 
+  isOpen, 
+  onClose, 
+  templateId,
+  templateFields,
+  formData,
+  templateImage,
+  onFieldsUpdated
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  templateId: number;
+  templateFields: TemplateField[];
+  formData: Record<string, any>;
+  templateImage: string;
+  onFieldsUpdated: (fields: any[]) => void;
+}) => {
+  const [editedFields, setEditedFields] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  // عندما تفتح النافذة، حول الحقول إلى التنسيق المطلوب للمحرر
+  useEffect(() => {
+    if (isOpen && templateFields && templateFields.length > 0) {
+      // تحويل حقول القالب إلى التنسيق المطلوب لمكون المحرر
+      const convertedFields = templateFields.map(field => {
+        // التأكد من أن لكل حقل موضع صالح
+        let position = field.position;
+        if (!position || typeof position !== 'object') {
+          position = { x: 50, y: 50 };
+        }
+        
+        // التأكد من أن خصائص النمط موجودة ومعرفة
+        const fieldStyle = field.style || {};
+        
+        return {
+          ...field,
+          id: field.id,
+          position,
+          style: fieldStyle,
+          // ضمان وجود خصائص ضرورية لعرض الحقل
+          visible: fieldStyle.visible !== false,
+          zIndex: fieldStyle.zIndex || fieldStyle.layer || 1,
+          rotation: fieldStyle.rotation || 0,
+          // إضافة معلومات الحجم إذا كانت متوفرة
+          size: {
+            width: fieldStyle.width || 200,
+            height: fieldStyle.height || 50
+          }
+        };
+      });
+      
+      setEditedFields(convertedFields);
+      console.log("تم تحويل حقول القالب للمحرر:", convertedFields);
+    }
+  }, [isOpen, templateFields]);
+
+  // عند حفظ التغييرات
+  const handleSaveDesign = () => {
+    try {
+      onFieldsUpdated(editedFields);
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ تغييرات التصميم بنجاح",
+      });
+      onClose();
+    } catch (error) {
+      console.error("خطأ أثناء حفظ التصميم:", error);
+      toast({
+        title: "خطأ في الحفظ",
+        description: "حدث خطأ أثناء حفظ التصميم، يرجى المحاولة مرة أخرى",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // الاستماع لتغييرات الحقول من محرر المواضع
+  const handleFieldsChange = (updatedFields: any[]) => {
+    setEditedFields(updatedFields);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] max-h-[95vh] p-0 overflow-hidden">
+        <div className="flex flex-col h-full">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle>تعديل تصميم البطاقة</DialogTitle>
+            <DialogDescription>
+              يمكنك تعديل مظهر العناصر وموضعها في البطاقة هنا. اسحب العناصر لتغيير مواضعها.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto p-0">
+            <FieldsPositionEditor
+              templateId={templateId}
+              initialFields={editedFields}
+              formData={formData}
+              templateImage={templateImage}
+              onChange={handleFieldsChange}
+              readOnly={false}
+              embedded={true}
+            />
+          </div>
+          
+          <div className="p-4 border-t flex justify-between">
+            <Button variant="outline" onClick={onClose}>
+              إلغاء
+            </Button>
+            <Button onClick={handleSaveDesign}>
+              حفظ التغييرات
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

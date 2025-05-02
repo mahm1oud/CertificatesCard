@@ -1129,6 +1129,45 @@ export default function TemplateFieldsPage() {
                             </div>
                           </div>
                           
+                          {/* إضافة تحكم بحجم وعرض النص */}
+                          <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div className="grid gap-2">
+                              <Label htmlFor="textWidth">عرض النص (بكسل)</Label>
+                              <Input
+                                id="textWidth"
+                                type="number"
+                                min="100"
+                                max="1000"
+                                value={fieldFormData.style?.width || 200}
+                                onChange={(e) => setFieldFormData({ 
+                                  ...fieldFormData, 
+                                  style: { 
+                                    ...fieldFormData.style,
+                                    width: Number(e.target.value)
+                                  } 
+                                })}
+                              />
+                            </div>
+                            
+                            <div className="grid gap-2">
+                              <Label htmlFor="textHeight">ارتفاع النص (بكسل)</Label>
+                              <Input
+                                id="textHeight"
+                                type="number"
+                                min="30"
+                                max="300"
+                                value={fieldFormData.style?.height || 50}
+                                onChange={(e) => setFieldFormData({ 
+                                  ...fieldFormData, 
+                                  style: { 
+                                    ...fieldFormData.style,
+                                    height: Number(e.target.value)
+                                  } 
+                                })}
+                              />
+                            </div>
+                          </div>
+                          
                           <div className="grid gap-2 mt-4">
                             <Label htmlFor="fontFamily">نوع الخط</Label>
                             <Select 
