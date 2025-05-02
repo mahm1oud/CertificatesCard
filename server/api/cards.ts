@@ -68,4 +68,44 @@ router.post('/:id/update-image', async (req: Request, res: Response) => {
   }
 });
 
+// تحديث تصميم البطاقة (مواضع وخصائص الحقول)
+router.patch('/:id/update-design', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { fields } = req.body;
+    
+    if (!fields || !Array.isArray(fields)) {
+      return res.status(400).json({ message: "بيانات الحقول غير صالحة" });
+    }
+    
+    // جلب البطاقة
+    const card = await storage.getCard(parseInt(id));
+    if (!card) {
+      return res.status(404).json({ message: "البطاقة غير موجودة" });
+    }
+    
+    // تحقق من الصلاحيات إذا كان المستخدم مسجل
+    if (req.isAuthenticated() && card.userId && req.user.id !== card.userId && !req.user.isAdmin) {
+      return res.status(403).json({ message: "غير مصرح لك بتعديل هذه البطاقة" });
+    }
+    
+    // تحضير بيانات التحديث - نحتفظ بالبيانات المدخلة ونضيف بيانات التصميم
+    let updatedFormData = { ...card.formData };
+    
+    // إضافة/تحديث حقل خاص يحتوي على بيانات التصميم المخصص
+    updatedFormData._designFields = fields;
+    
+    // تحديث البطاقة مع بيانات التصميم الجديدة
+    await storage.updateCard(card.id, { formData: updatedFormData });
+    
+    res.json({ 
+      success: true, 
+      message: "تم تحديث تصميم البطاقة بنجاح"
+    });
+  } catch (error) {
+    console.error("Error updating card design:", error);
+    res.status(500).json({ message: "حدث خطأ أثناء تحديث تصميم البطاقة" });
+  }
+});
+
 export default router;

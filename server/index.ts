@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
 import { scheduleHealthChecks } from "./lib/database-health";
+import { ensureDefaultAdminExists } from "./init-db";
 
 const app = express();
 app.use(express.json());
@@ -69,20 +70,27 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
+    // إنشاء مستخدم admin افتراضي
+    try {
+      log('🔄 التحقق من وجود مستخدم admin افتراضي...');
+      ensureDefaultAdminExists()
+        .then(() => {
+          log('✅ تم التحقق من وجود مستخدم admin');
+        })
+        .catch(err => {
+          log(`⚠️ خطأ في التحقق من/إنشاء مستخدم admin: ${err.message}`);
+        });
+    } catch (err) {
+      log(`⚠️ خطأ في تهيئة مستخدم admin: ${err}`);
+    }
+
     // بدء جدولة فحوصات صحة قاعدة البيانات (كل 5 دقائق) في بيئة الإنتاج
     if (process.env.NODE_ENV === 'production') {
-      const stopHealthChecks = scheduleHealthChecks(5);
+      const stopHealthChecks = scheduleHealthChecks();
       // تسجيل دالة التوقف مع إنهاء العملية للتنظيف
       process.on('SIGTERM', () => {
-        stopHealthChecks();
-      });
-      
-      // فحص صحة قاعدة البيانات عند بدء التشغيل
-      checkDatabaseConnection().then(connected => {
-        if (connected) {
-          log('✅ قاعدة البيانات تعمل بشكل جيد عند بدء التشغيل');
-        } else {
-          log('⚠️ مشاكل في الاتصال بقاعدة البيانات عند بدء التشغيل، سيتم محاولة إصلاحها تلقائيًا');
+        if (stopHealthChecks && typeof stopHealthChecks === 'object' && 'timer' in stopHealthChecks) {
+          clearInterval(stopHealthChecks.timer);
         }
       });
     }

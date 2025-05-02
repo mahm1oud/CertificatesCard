@@ -1,10 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
-
-// تهيئة وتكوين مكتبة Neon لاستخدام WebSocket للاتصال
-neonConfig.webSocketConstructor = ws;
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import * as schema from "../shared/schema";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -26,7 +22,7 @@ const poolOptions = {
 export const pool = new Pool(poolOptions);
 
 // إنشاء مثيل Drizzle ORM
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });
 
 // إضافة معالجة الأخطاء وإعادة المحاولة للاتصال
 // استمع إلى أحداث الخطأ لتسجيلها ومعالجتها

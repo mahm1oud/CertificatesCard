@@ -1258,53 +1258,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Template CRUD operations (admin only)
   app.post("/api/admin/templates", isAdmin, upload.single('image'), async (req, res) => {
     try {
+      console.log("🔄 استلام طلب إنشاء قالب جديد");
+      
       if (!req.body.templateData) {
-        console.error("Missing templateData in request");
+        console.error("❌ بيانات القالب مفقودة في الطلب");
         return res.status(400).json({ message: "بيانات القالب مفقودة" });
       }
       
       let templateData;
       try {
         templateData = JSON.parse(req.body.templateData);
+        console.log("✅ تم تحليل بيانات القالب بنجاح:", {
+          title: templateData.title,
+          categoryId: templateData.categoryId,
+          // لا نعرض كامل البيانات في السجل لتجنب الإطالة
+        });
       } catch (error) {
-        console.error("Error parsing templateData:", error, "Raw templateData:", req.body.templateData);
+        console.error("❌ خطأ في تحليل بيانات القالب:", error);
+        console.error("البيانات الخام المستلمة:", req.body.templateData);
         return res.status(400).json({ message: "خطأ في تنسيق بيانات القالب" });
       }
       
+      // إجراء عمليات التحقق من البيانات الأساسية
+      if (!templateData.title) {
+        console.error("❌ عنوان القالب مفقود");
+        return res.status(400).json({ message: "عنوان القالب مطلوب" });
+      }
+      
+      if (!templateData.categoryId) {
+        console.error("❌ معرف التصنيف مفقود");
+        return res.status(400).json({ message: "تصنيف القالب مطلوب" });
+      }
+      
+      // تحويل categoryId إلى رقم إذا كان نصاً
+      if (typeof templateData.categoryId === 'string') {
+        templateData.categoryId = parseInt(templateData.categoryId, 10);
+        console.log(`🔄 تم تحويل معرف التصنيف من نص إلى رقم: ${templateData.categoryId}`);
+      }
+      
+      // معالجة ملف الصورة المرفق
       if (req.file) {
-        // Move the uploaded file to the uploads directory
+        console.log(`✅ تم استلام ملف صورة: ${req.file.originalname} (${req.file.size} بايت)`);
+        
+        // نقل الملف المرفوع إلى مجلد التحميلات
         const filename = path.basename(req.file.path);
         const targetPath = path.join(uploadsDir, filename);
         
-        fs.copyFileSync(req.file.path, targetPath);
-        fs.unlinkSync(req.file.path); // Remove the temp file
-        
-        templateData.imageUrl = `/uploads/${filename}`;
+        try {
+          fs.copyFileSync(req.file.path, targetPath);
+          fs.unlinkSync(req.file.path); // إزالة الملف المؤقت
+          console.log(`✅ تم نقل الصورة إلى: ${targetPath}`);
+          
+          templateData.imageUrl = `/uploads/${filename}`;
+        } catch (fileError) {
+          console.error(`❌ خطأ في معالجة ملف الصورة:`, fileError);
+          return res.status(500).json({ message: "حدث خطأ أثناء معالجة ملف الصورة" });
+        }
+      } else if (!templateData.imageUrl) {
+        console.error("❌ لم يتم توفير صورة للقالب");
+        return res.status(400).json({ message: "يجب توفير صورة للقالب" });
       }
       
-      const validatedData = insertTemplateSchema.parse(templateData);
-      const template = await storage.createTemplate(validatedData);
-      
-      // Create template fields if provided
-      if (templateData.templateFields && Array.isArray(templateData.templateFields)) {
-        for (const field of templateData.templateFields) {
-          await storage.createTemplateField({
-            ...field,
-            templateId: template.id
+      // إرسال البيانات إلى الـ schema للتحقق منها
+      try {
+        console.log("🔄 التحقق من صحة بيانات القالب...");
+        
+        // معالجة الحقول التي يتم إنشاؤها تلقائياً
+        // بدلاً من حذف الحقول، دعنا نتأكد من أنها تحمل قيماً افتراضية مناسبة
+        if (!templateData.slug || templateData.slug.trim() === '') {
+          // تعيين slug مؤقت - سيتم تجاهله وإنشاء واحد جديد في storage.createTemplate
+          templateData.slug = 'temp-' + Date.now(); 
+          console.log("🔄 تم تعيين slug مؤقت:", templateData.slug);
+        }
+        
+        if (!templateData.displayOrder || templateData.displayOrder <= 0) {
+          // تعيين قيمة افتراضية للـ displayOrder - سيتم تحديثها في storage.createTemplate
+          templateData.displayOrder = 1;
+          console.log("🔄 تم تعيين قيمة مؤقتة لـ displayOrder:", templateData.displayOrder);
+        }
+        
+        // ضمان وجود الحقول المطلوبة بتنسيق صحيح
+        templateData.fields = templateData.fields || [];
+        templateData.defaultValues = templateData.defaultValues || {};
+        templateData.settings = templateData.settings || {};
+        templateData.active = templateData.active !== false; // افتراضياً نشط
+        
+        const validatedData = insertTemplateSchema.parse(templateData);
+        console.log("✅ تم التحقق من صحة البيانات بنجاح");
+        
+        // إنشاء القالب
+        console.log("🔄 جاري إنشاء القالب في قاعدة البيانات...");
+        const template = await storage.createTemplate(validatedData);
+        console.log(`✅ تم إنشاء القالب بنجاح. معرف القالب: ${template.id}`);
+        
+        // إنشاء حقول القالب إذا تم توفيرها
+        if (templateData.templateFields && Array.isArray(templateData.templateFields)) {
+          console.log(`🔄 جاري إنشاء ${templateData.templateFields.length} حقل للقالب...`);
+          for (const field of templateData.templateFields) {
+            await storage.createTemplateField({
+              ...field,
+              templateId: template.id
+            });
+          }
+          console.log("✅ تم إنشاء جميع حقول القالب بنجاح");
+        }
+        
+        console.log(`✅ تمت عملية إنشاء القالب "${template.title}" بنجاح`);
+        res.status(201).json(template);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          console.error("❌ خطأ في التحقق من صحة البيانات:", validationError.errors);
+          return res.status(400).json({ 
+            message: "بيانات غير صالحة", 
+            errors: validationError.errors 
           });
         }
+        
+        console.error("❌ خطأ أثناء إنشاء القالب:", validationError);
+        res.status(500).json({ message: "حدث خطأ أثناء إنشاء القالب" });
       }
-      
-      res.status(201).json(template);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "بيانات غير صالحة", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error creating template:", error);
-      res.status(500).json({ message: "حدث خطأ أثناء إنشاء القالب" });
+      console.error("❌ خطأ عام أثناء معالجة طلب إنشاء القالب:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء معالجة الطلب" });
     }
   });
 

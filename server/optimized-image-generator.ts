@@ -124,15 +124,21 @@ const ARABIC_FONTS = {
   AMIRI_BOLD: 'Amiri',    // سنستخدم Amiri بدون Bold وسنضيف bold في الخصائص
 };
 
+/**
+ * واجهة تكوين الحقل المطورة مع دعم كامل لخصائص الطبقات والدوران والرؤية
+ * هذه الواجهة مطابقة تماماً للواجهة المستخدمة في المكونات الأخرى
+ * للحصول على تطابق 100% بين المعاينة والصورة النهائية
+ */
 interface FieldConfig {
   id?: number;
   name: string;
-  position: { x: number; y: number } | any; // قبول أي نوع من البيانات للتوافق مع النظام الحالي
-  type?: string;
+  position: { x: number; y: number, snapToGrid?: boolean } | any; // قبول أي نوع من البيانات للتوافق مع النظام الحالي
+  type?: 'text' | 'image' | string;
   imageType?: string | null; // نوع الصورة (شعار أو توقيع) - إضافة null للتوافق مع قاعدة البيانات
   zIndex?: number; // دعم الطبقات
   visible?: boolean; // دعم الإخفاء
   rotation?: number; // دعم الدوران
+  size?: { width: number; height: number }; // دعم تحديد أبعاد الحقل
   style?: {
     fontFamily?: string;
     fontSize?: number;
@@ -145,12 +151,26 @@ interface FieldConfig {
       enabled?: boolean;
       color?: string;
       blur?: number;
+      offsetX?: number;
+      offsetY?: number;
     };
+    // خصائص الخط
+    lineHeight?: number;
+    letterSpacing?: number;
     // إضافة خصائص حقول الصور
     imageMaxWidth?: number;
     imageMaxHeight?: number;
     imageBorder?: boolean;
     imageRounded?: boolean;
+    imagePadding?: number;
+    imageShadow?: {
+      enabled?: boolean;
+      color?: string;
+      blur?: number;
+      offsetX?: number;
+      offsetY?: number;
+    };
+    backgroundColor?: string;
     layer?: number; // للتوافقية الخلفية مع النظام القديم
   } | any; // قبول أي نوع من البيانات للتوافق مع النظام الحالي
   defaultValue?: string | null;
@@ -262,6 +282,16 @@ export async function generateOptimizedCardImage({
   quality = 'high',
   outputFormat = 'png'
 }: GenerateCardOptions): Promise<string> {
+  // استخدام الحقول المخصصة من formData._designFields إذا كانت متوفرة
+  let effectiveFields = fields;
+  
+  // التحقق من وجود حقول مخصصة في بيانات النموذج
+  if (formData._designFields && Array.isArray(formData._designFields) && formData._designFields.length > 0) {
+    console.log("استخدام حقول التصميم المخصصة على السيرفر:", formData._designFields.length);
+    effectiveFields = formData._designFields;
+  } else {
+    console.log("استخدام حقول التصميم الأصلية على السيرفر:", fields.length);
+  }
   // تحميل صورة القالب مع التعامل مع مختلف أنواع المسارات
   let templateImage;
   console.log(`Attempting to load template image from: ${templatePath}`);
@@ -432,11 +462,12 @@ export async function generateOptimizedCardImage({
   ctx.textBaseline = 'middle';
   
   // رسم جميع الحقول مرتبة حسب الطبقة
-  const fieldsMap = new Map(fields.map(field => [field.name, field]));
+  const fieldsMap = new Map(effectiveFields.map(field => [field.name, field]));
   
   // إعداد قائمة الحقول من البيانات المدخلة ثم ترتيبها حسب الطبقة
   const fieldsToRender = [];
   for (const [fieldName, value] of Object.entries(formData)) {
+    if (fieldName === '_designFields') continue; // تجاهل خصائص التصميم المخصصة نفسها
     if (!value || typeof value !== 'string') continue;
     
     const field = fieldsMap.get(fieldName);
@@ -455,12 +486,19 @@ export async function generateOptimizedCardImage({
   }
   
   // ترتيب الحقول حسب الطبقة (الأصغر يظهر خلف الأكبر)
-  fieldsToRender.sort((a, b) => a.layer - b.layer);
+  fieldsToRender.sort((a, b) => {
+    // استخدام فارق الطبقة بشكل مباشر للترتيب
+    return a.layer - b.layer;
+  });
+  
+  // طباعة معلومات الترتيب للتحقق
+  console.log(`🔍 Field layers sorted order:`, 
+    fieldsToRender.map(f => `${f.field.name} (layer:${f.layer})`).join(', '));
   
   // استخدام async للسماح بتحميل الصور
   for (const { field, value, layer } of fieldsToRender) {
     const fieldName = field.name;
-    console.log(`Drawing field: ${fieldName} (layer: ${layer})`);
+    console.log(`Drawing field: ${fieldName} (layer: ${layer}, zIndex: ${field.zIndex || 0})`);
     
     
     // حفظ حالة السياق الحالية
@@ -582,8 +620,10 @@ export async function generateOptimizedCardImage({
         if (style.textShadow?.enabled) {
           ctx.shadowColor = style.textShadow.color || 'rgba(0, 0, 0, 0.5)';
           ctx.shadowBlur = (style.textShadow.blur || 3) * scaleFactor;
-          ctx.shadowOffsetX = 2 * scaleFactor;
-          ctx.shadowOffsetY = 2 * scaleFactor;
+          // استخدام قيم الإزاحة من الإعدادات أو القيم الافتراضية
+          ctx.shadowOffsetX = (style.textShadow.offsetX !== undefined ? style.textShadow.offsetX : 2) * scaleFactor;
+          ctx.shadowOffsetY = (style.textShadow.offsetY !== undefined ? style.textShadow.offsetY : 2) * scaleFactor;
+          console.log(`Applied text shadow to field ${fieldName} with blur: ${ctx.shadowBlur}, offsetX: ${ctx.shadowOffsetX}, offsetY: ${ctx.shadowOffsetY}`);
         } else {
           ctx.shadowColor = 'transparent';
           ctx.shadowBlur = 0;
@@ -720,6 +760,13 @@ export async function generateOptimizedCardImage({
       if (style.textShadow?.enabled) {
         ctx.shadowColor = style.textShadow.color || 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = (style.textShadow.blur || 3) * scaleFactor;
+        // استخدام قيم الإزاحة من الإعدادات أو القيم الافتراضية
+        ctx.shadowOffsetX = (style.textShadow.offsetX !== undefined ? style.textShadow.offsetX : 0) * scaleFactor;
+        ctx.shadowOffsetY = (style.textShadow.offsetY !== undefined ? style.textShadow.offsetY : 0) * scaleFactor;
+        console.log(`Applied text shadow to field ${fieldName} with blur: ${ctx.shadowBlur}, offsetX: ${ctx.shadowOffsetX}, offsetY: ${ctx.shadowOffsetY}`);
+      } else {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
       }
@@ -919,10 +966,21 @@ export async function generateOptimizedCertificateImage(template: any, formData:
     }
   }
   
+  // استخدام الحقول المخصصة من formData._designFields إذا كانت متوفرة
+  let effectiveFields = fields;
+  
+  // التحقق من وجود حقول مخصصة في بيانات النموذج
+  if (formData._designFields && Array.isArray(formData._designFields) && formData._designFields.length > 0) {
+    console.log("استخدام حقول التصميم المخصصة في توليد الشهادة:", formData._designFields.length);
+    effectiveFields = formData._designFields;
+  } else {
+    console.log("استخدام حقول التصميم الأصلية في توليد الشهادة:", fields.length);
+  }
+  
   // توليد الصورة باستخدام المولد المحسن
   return generateOptimizedCardImage({
     templatePath: imageUrl, // استخدام متغير imageUrl الذي تم تحديده في بداية الدالة
-    fields,
+    fields: effectiveFields, // استخدام الحقول الفعالة (الأصلية أو المخصصة)
     formData,
     outputWidth: 2480, // A4 width at 300dpi
     outputHeight: 3508, // A4 height at 300dpi

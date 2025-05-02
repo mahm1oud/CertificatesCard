@@ -446,13 +446,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    try {
+      // استخدام استعلام SQL مباشر للتوافق مع بنية قاعدة البيانات
+      const result = await db.execute(sql`
+        SELECT * FROM users WHERE username = ${username}
+      `);
+      return result.rows?.[0] as User;
+    } catch (error) {
+      console.error("Error in getUserByUsername:", error);
+      return undefined;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    // نظرًا لعدم وجود عمود email في قاعدة البيانات الحالية
+    // سنستخدم اسم المستخدم بدلاً من البريد الإلكتروني
+    return this.getUserByUsername(email);
   }
   
   async getUserByProviderId(provider: string, providerId: string): Promise<User | undefined> {
@@ -488,8 +497,8 @@ export class DatabaseStorage implements IStorage {
       query = query.where(
         or(
           like(users.username, `%${search}%`),
-          like(users.name || '', `%${search}%`),
-          like(users.email, `%${search}%`)
+          like(users.name || '', `%${search}%`)
+          // عمود البريد الإلكتروني غير موجود في بنية الجدول الحالية
         )
       );
     }
@@ -502,8 +511,8 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(search ? or(
         like(users.username, `%${search}%`),
-        like(users.name || '', `%${search}%`),
-        like(users.email, `%${search}%`)
+        like(users.name || '', `%${search}%`)
+        // عمود البريد الإلكتروني غير موجود في بنية الجدول الحالية
       ) : sql`1=1`);
     
     return { users: usersData, total: Number(count) };
@@ -861,16 +870,27 @@ export class DatabaseStorage implements IStorage {
    */
   async getNextTemplateDisplayOrder(): Promise<number> {
     try {
-      // استعلام للحصول على أعلى قيمة لـ displayOrder
-      const result = await db
-        .select({ maxOrder: sql<number>`MAX(${templates.displayOrder})` })
-        .from(templates);
+      console.log('🔄 جاري الحصول على ترتيب العرض التالي للقالب...');
+      
+      // استعلام للحصول على أعلى قيمة لـ displayOrder مع التعامل مع الأخطاء المحتملة
+      const result = await withDatabaseRetry(async () => {
+        return await db
+          .select({ maxOrder: sql<number>`COALESCE(MAX(${templates.displayOrder}), 0)` })
+          .from(templates);
+      }, 3, 1000, [{ maxOrder: 0 }]);
 
-      // استخراج القيمة القصوى وإضافة 1 إليها
-      const maxOrder = result[0]?.maxOrder || 0;
-      return maxOrder + 1;
+      // استخراج القيمة القصوى وإضافة 1 إليها مع التحقق من البيانات
+      const maxOrder = result && result[0] && typeof result[0].maxOrder === 'number' 
+        ? result[0].maxOrder 
+        : 0;
+      
+      const nextOrder = maxOrder + 1;
+      console.log(`✅ تم الحصول على ترتيب العرض التالي: ${nextOrder}`);
+      
+      return nextOrder;
     } catch (error) {
-      console.error('خطأ في الحصول على أقصى ترتيب للقوالب:', error);
+      console.error('❌ خطأ في الحصول على أقصى ترتيب للقوالب:', error);
+      console.log('⚠️ استخدام القيمة الافتراضية للترتيب: 1');
       return 1; // القيمة الافتراضية إذا حدث خطأ
     }
   }
@@ -881,24 +901,50 @@ export class DatabaseStorage implements IStorage {
    * @returns المعرف الفريد slug
    */
   createSlugFromTitle(title: string): string {
-    // تحويل العنوان إلى نص مناسب لل slug
-    const baseSlug = title
-      .toLowerCase() // تحويل إلى أحرف صغيرة
-      .replace(/[؀-ۿ]/g, '') // إزالة الأحرف العربية
-      .replace(/[^a-z0-9\s-]/g, '') // إزالة كل ما عدا الأحرف والأرقام والمسافات والشرطات
-      .trim() // إزالة المسافات من البداية والنهاية
-      .replace(/\s+/g, '-') // استبدال المسافات بشرطات
-      .replace(/-+/g, '-'); // إزالة الشرطات المتكررة
-      
-    // إذا كان العنوان بالعربية فقط أو لم ينتج أي slug مناسب
-    if (!baseSlug || baseSlug.length < 2) {
-      // إنشاء معرف عشوائي باستخدام الطابع الزمني
+    console.log(`🔄 جاري إنشاء slug من العنوان: "${title}"`);
+    
+    if (!title || typeof title !== 'string') {
+      console.error('❌ العنوان فارغ أو غير صالح لإنشاء slug');
+      // إنشاء معرف عشوائي للقوالب التي ليس لها عنوان
       const timestamp = new Date().getTime();
       const randomStr = Math.random().toString(36).substring(2, 8);
-      return `template-${timestamp}-${randomStr}`;
+      const fallbackSlug = `template-${timestamp}-${randomStr}`;
+      console.log(`⚠️ تم إنشاء slug بديل عشوائي: ${fallbackSlug}`);
+      return fallbackSlug;
     }
     
-    return baseSlug;
+    // محاولة تحويل العنوان إلى نص مناسب لل slug
+    try {
+      // تحويل العنوان إلى نص مناسب لل slug
+      let baseSlug = title
+        .toLowerCase() // تحويل إلى أحرف صغيرة
+        .replace(/[؀-ۿ]/g, '') // إزالة الأحرف العربية
+        .replace(/[^a-z0-9\s-]/g, '') // إزالة كل ما عدا الأحرف والأرقام والمسافات والشرطات
+        .trim() // إزالة المسافات من البداية والنهاية
+        .replace(/\s+/g, '-') // استبدال المسافات بشرطات
+        .replace(/-+/g, '-'); // إزالة الشرطات المتكررة
+        
+      // إذا كان العنوان بالعربية فقط أو لم ينتج أي slug مناسب
+      if (!baseSlug || baseSlug.length < 2) {
+        console.log('⚠️ لم ينتج أي slug مناسب من العنوان، سيتم إنشاء معرف عشوائي');
+        // إنشاء معرف عشوائي باستخدام الطابع الزمني
+        const timestamp = new Date().getTime();
+        const randomStr = Math.random().toString(36).substring(2, 8);
+        baseSlug = `template-${timestamp}-${randomStr}`;
+      }
+      
+      console.log(`✅ تم إنشاء slug بنجاح: ${baseSlug}`);
+      return baseSlug;
+      
+    } catch (error) {
+      console.error('❌ خطأ أثناء إنشاء slug:', error);
+      // إنشاء معرف عشوائي في حالة حدوث خطأ
+      const timestamp = new Date().getTime();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const errorSlug = `template-${timestamp}-${randomStr}`;
+      console.log(`⚠️ تم إنشاء slug بديل بسبب الخطأ: ${errorSlug}`);
+      return errorSlug;
+    }
   }
 
   async createTemplate(insertTemplate: InsertTemplate): Promise<Template> {
