@@ -7,28 +7,37 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password"), // تم جعل هذا الحقل اختياريًا لدعم تسجيل الدخول من خلال مواقع التواصل الاجتماعي
-  email: text("email").notNull().unique(),
+  password: text("password").notNull(), // كلمة المرور إلزامية في البنية الحالية
   name: text("name"),
   role: text("role").default("user").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  lastLogin: timestamp("last_login"),
+  updatedAt: timestamp("updated_at"),
+  // لاحظ: عمود البريد الإلكتروني (email) غير موجود في جدول المستخدمين الحالي
+  // ولكن يمكن إضافته لاحقًا إذا كان مطلوبًا
+  
+  // الحقول التالية قد لا تكون موجودة في بنية الجدول الحالية
+  // وتم تعليقها لتجنب أي أخطاء
+  /* 
   active: boolean("active").default(true).notNull(),
-  // حقول خاصة بتسجيل الدخول من خلال مواقع التواصل الاجتماعي
+  lastLogin: timestamp("last_login"),
   profileImageUrl: text("profile_image_url"), // رابط صورة الملف الشخصي
   provider: text("provider"), // المزود (google, facebook, twitter, linkedin)
   providerId: text("provider_id"), // معرف المستخدم لدى المزود
   providerData: json("provider_data").default({}), // بيانات إضافية من المزود
   verifiedEmail: boolean("verified_email").default(false), // هل تم التحقق من البريد الإلكتروني
   locale: text("locale").default("ar"), // لغة المستخدم المفضلة
+  */
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
-  email: true,
   name: true,
   role: true,
+  // لاحظ: تم حذف حقل البريد الإلكتروني (email) لأنه غير موجود في بنية الجدول الحالية
+  
+  // تعليق الحقول التي قد لا تكون موجودة في بنية الجدول الحالية
+  /*
   active: true,
   profileImageUrl: true,
   provider: true,
@@ -36,6 +45,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   providerData: true,
   verifiedEmail: true,
   locale: true,
+  */
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -88,7 +98,11 @@ export const templates = pgTable("templates", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertTemplateSchema = createInsertSchema(templates).pick({
+export const insertTemplateSchema = createInsertSchema(templates, {
+  // إضافة قواعد التحقق المخصصة لبعض الحقول
+  title: (schema) => schema.min(1, "عنوان القالب مطلوب"),
+  categoryId: (schema) => schema.int("معرف التصنيف يجب أن يكون رقماً"), 
+}).pick({
   title: true,
   titleAr: true,
   slug: true,
