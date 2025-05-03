@@ -26,13 +26,10 @@ async function seedDefaultAdmin() {
     // إنشاء مستخدم admin جديد
     const newAdmin = {
       username: "admin",
-      email: "admin@example.com",
       password: hashedPassword,
-      name: "مدير النظام",
       role: "admin",
-      active: true,
-      verifiedEmail: true,
-      locale: "ar",
+      // يجب مراعاة أن بعض الحقول قد لا تكون موجودة في البنية الحالية
+      // نستخدم فقط الحقول المتوافقة مع schema.ts
     };
     
     // إدخال المستخدم في قاعدة البيانات

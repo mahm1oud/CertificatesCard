@@ -487,13 +487,31 @@ export async function generateOptimizedCardImage({
   
   // ترتيب الحقول حسب الطبقة (الأصغر يظهر خلف الأكبر)
   fieldsToRender.sort((a, b) => {
-    // استخدام فارق الطبقة بشكل مباشر للترتيب
-    return a.layer - b.layer;
+    // تحسين الترتيب مع مراعاة القيم غير المحددة (الnull و undefined)
+    // إذا كانت القيمة غير محددة، تستخدم القيمة الافتراضية 0
+    const layerA = (a.layer !== undefined && a.layer !== null) ? a.layer : 0;
+    const layerB = (b.layer !== undefined && b.layer !== null) ? b.layer : 0;
+    
+    // في حالة تساوي الطبقات، نستخدم ترتيب العرض إن وجد
+    if (layerA === layerB) {
+      // استخدام ترتيب العرض كمعيار ثانوي
+      const orderA = a.field.displayOrder || 0;
+      const orderB = b.field.displayOrder || 0;
+      return orderA - orderB;
+    }
+    
+    // الترتيب الرئيسي حسب الطبقة
+    return layerA - layerB;
   });
   
-  // طباعة معلومات الترتيب للتحقق
-  console.log(`🔍 Field layers sorted order:`, 
-    fieldsToRender.map(f => `${f.field.name} (layer:${f.layer})`).join(', '));
+  // طباعة معلومات مفصلة عن الترتيب للتحقق
+  console.log(`🔍 Field layers detailed info:`);
+  fieldsToRender.forEach(f => {
+    console.log(`   ${f.field.name}: layer=${f.layer}, zIndex=${f.field.zIndex || 0}, displayOrder=${f.field.displayOrder || 0}, visible=${f.field.visible !== false}, rotation=${f.field.rotation || 0}°`);
+  });
+  
+  console.log(`🔍 Field layers sorted order: ${fieldsToRender.map(f => f.field.name).join(' > ')}`);
+  
   
   // استخدام async للسماح بتحميل الصور
   for (const { field, value, layer } of fieldsToRender) {

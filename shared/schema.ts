@@ -93,6 +93,7 @@ export const templates = pgTable("templates", {
   fields: json("fields").notNull().default([]).$type<string[]>(), // Fields that this template requires
   defaultValues: json("default_values").default({}), // Default values for fields
   settings: json("settings").default({}), // Font, color, position settings
+  options: json("options").default({}), // Additional options for the template
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -112,6 +113,7 @@ export const insertTemplateSchema = createInsertSchema(templates, {
   displayOrder: true,
   fields: true,
   defaultValues: true,
+  options: true,
   settings: true,
   active: true,
 });
