@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -147,7 +148,7 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ cardId, imageUrl, size = 'd
       </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{t('share.title')}</DialogTitle>
             <DialogDescription>
@@ -155,7 +156,8 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ cardId, imageUrl, size = 'd
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <ScrollArea className="max-h-[calc(90vh-160px)] pr-4">
+            <div className="space-y-4">
             <div className="flex flex-row gap-4 mb-4">
               <Button
                 variant={!showQrCode ? "default" : "outline"}
@@ -297,6 +299,7 @@ const ShareOptions: React.FC<ShareOptionsProps> = ({ cardId, imageUrl, size = 'd
               </div>
             )}
           </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>

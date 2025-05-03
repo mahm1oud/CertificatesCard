@@ -641,6 +641,21 @@ export const DraggableFieldsPreviewWithLayers: React.FC<DraggableFieldsPreviewPr
               fill="white"
             />
             
+            {/* خلفية بيضاء بحجم صورة القالب - تظهر خلف صورة القالب لرؤية الحقول التي خلفها */}
+            {isTemplateImageLoaded && templateImageObj && (
+              <Rect
+                x={templateImagePosition.x}
+                y={templateImagePosition.y}
+                width={templateImageSize.width}
+                height={templateImageSize.height}
+                fill="#f8f8f8"
+                stroke="#e0e0e0"
+                strokeWidth={1}
+                dash={[5, 5]}
+                cornerRadius={4}
+              />
+            )}
+            
             {/* الشبكة */}
             {renderGrid()}
             

@@ -36,7 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { DraggableFieldsPreviewPro } from "./DraggableFieldsPreviewPro";
+import { DraggableFieldsPreviewPro } from ".";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -98,6 +98,9 @@ interface Field {
 interface EditorSettings {
   gridEnabled?: boolean;
   snapToGrid?: boolean;
+  templateImageLayer?: number; // تحديد مستوى طبقة صورة القالب
+  locked?: boolean; // قفل المحرر لمنع التعديل
+  templateImageAsLayer?: boolean; // معالجة صورة القالب كطبقة مستقلة
 }
 
 // واجهة محرر موقع الحقول كحوار منبثق
@@ -1135,6 +1138,10 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
   const [advancedSettingsTab, setAdvancedSettingsTab] = useState('layers');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
+  // إعدادات طبقة صورة القالب
+  const [templateImageLayer, setTemplateImageLayer] = useState<number>(0); // 0 تعني الطبقة الوسطى
+  const [templateImageAsLayer, setTemplateImageAsLayer] = useState<boolean>(true); // معالجة صورة القالب كطبقة
+  
   // تحويل الـ props حسب واجهة الاستخدام
   const isDialog = 'isOpen' in props;
   const isEmbeddedEditor = !isDialog && 'onChange' in props;
@@ -1152,6 +1159,7 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
   useEffect(() => {
     if (isDialog) {
       if (props.fields) {
+        console.log("FieldsPositionEditor - استلام حقول في وضع الحوار:", props.fields);
         setFields(props.fields);
         if (props.fields.length > 0 && !selectedFieldId) {
           setSelectedFieldId(props.fields[0].id);
@@ -1159,7 +1167,14 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
       }
     } else {
       if (props.initialFields) {
-        setFields(props.initialFields);
+        console.log("FieldsPositionEditor - استلام حقول في وضع المضمن:", props.initialFields);
+        // تأكد من أن جميع الحقول مرئية
+        const visibleFields = props.initialFields.map(field => ({
+          ...field,
+          visible: true, // تأكيد أن جميع الحقول مرئية
+        }));
+        setFields(visibleFields);
+        
         if (props.initialFields.length > 0 && !selectedFieldId) {
           setSelectedFieldId(props.initialFields[0].id);
         }
@@ -1370,13 +1385,81 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
                     </TabsList>
                     
                     <TabsContent value="layers" className="flex-1">
-                      <LayersManager
-                        fields={fields}
-                        selectedFieldId={selectedFieldId}
-                        onSelectField={setSelectedFieldId}
-                        onMoveLayer={handleMoveLayer}
-                        onToggleVisibility={toggleFieldVisibility}
-                      />
+                      <div className="space-y-4">
+                        {/* إعدادات طبقة صورة القالب */}
+                        <div className="p-2 border border-gray-200 rounded-md bg-gray-50">
+                          <h3 className="text-sm font-medium mb-2">إعدادات صورة القالب</h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                              <Label htmlFor="dialogTemplateImageAsLayer" className="flex-grow text-xs cursor-pointer">
+                                معالجة صورة القالب كطبقة مستقلة
+                              </Label>
+                              <Switch 
+                                id="dialogTemplateImageAsLayer" 
+                                checked={templateImageAsLayer}
+                                onCheckedChange={setTemplateImageAsLayer}
+                              />
+                            </div>
+                            
+                            {templateImageAsLayer && (
+                              <div className="space-y-2">
+                                <Label className="text-xs">موضع طبقة صورة القالب</Label>
+                                <div className="grid grid-cols-3 gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={`text-xs ${templateImageLayer < 0 ? 'bg-blue-100' : ''}`}
+                                    onClick={() => setTemplateImageLayer(-10)}
+                                  >
+                                    خلف جميع الحقول
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={`text-xs ${templateImageLayer === 0 ? 'bg-blue-100' : ''}`}
+                                    onClick={() => setTemplateImageLayer(0)}
+                                  >
+                                    وسط
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={`text-xs ${templateImageLayer > 0 ? 'bg-blue-100' : ''}`}
+                                    onClick={() => setTemplateImageLayer(10)}
+                                  >
+                                    أمام جميع الحقول
+                                  </Button>
+                                </div>
+                                <div className="pt-2">
+                                  <Label className="text-xs mb-1 block">تعديل دقيق لمستوى الطبقة</Label>
+                                  <Slider
+                                    value={[templateImageLayer]}
+                                    onValueChange={(values) => setTemplateImageLayer(values[0])}
+                                    min={-20}
+                                    max={20}
+                                    step={1}
+                                    className="my-2"
+                                  />
+                                  <div className="flex justify-between text-xs text-gray-500">
+                                    <span>خلف (-20)</span>
+                                    <span>{templateImageLayer}</span>
+                                    <span>أمام (20)</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* مدير الطبقات */}
+                        <LayersManager
+                          fields={fields}
+                          selectedFieldId={selectedFieldId}
+                          onSelectField={setSelectedFieldId}
+                          onMoveLayer={handleMoveLayer}
+                          onToggleVisibility={toggleFieldVisibility}
+                        />
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -1409,7 +1492,9 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
                       formData={formData}
                       editorSettings={{
                         gridEnabled: showGrid,
-                        snapToGrid: snapToGrid
+                        snapToGrid: snapToGrid,
+                        templateImageLayer: templateImageLayer, // تحديد مستوى طبقة صورة القالب
+                        templateImageAsLayer: templateImageAsLayer // معالجة صورة القالب كطبقة مستقلة
                       }}
                       onFieldsChange={(newFields: Field[]) => {
                         setFields(newFields);
@@ -1486,13 +1571,81 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
               </TabsList>
               
               <TabsContent value="layers" className="flex-1">
-                <LayersManager
-                  fields={fields}
-                  selectedFieldId={selectedFieldId}
-                  onSelectField={setSelectedFieldId}
-                  onMoveLayer={handleMoveLayer}
-                  onToggleVisibility={toggleFieldVisibility}
-                />
+                <div className="space-y-4">
+                  {/* إعدادات طبقة صورة القالب */}
+                  <div className="p-2 border border-gray-200 rounded-md bg-gray-50">
+                    <h3 className="text-sm font-medium mb-2">إعدادات صورة القالب</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                        <Label htmlFor="templateImageAsLayer" className="flex-grow text-xs cursor-pointer">
+                          معالجة صورة القالب كطبقة مستقلة
+                        </Label>
+                        <Switch 
+                          id="templateImageAsLayer" 
+                          checked={templateImageAsLayer}
+                          onCheckedChange={setTemplateImageAsLayer}
+                        />
+                      </div>
+                      
+                      {templateImageAsLayer && (
+                        <div className="space-y-2">
+                          <Label className="text-xs">موضع طبقة صورة القالب</Label>
+                          <div className="grid grid-cols-3 gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`text-xs ${templateImageLayer < 0 ? 'bg-blue-100' : ''}`}
+                              onClick={() => setTemplateImageLayer(-10)}
+                            >
+                              خلف جميع الحقول
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`text-xs ${templateImageLayer === 0 ? 'bg-blue-100' : ''}`}
+                              onClick={() => setTemplateImageLayer(0)}
+                            >
+                              وسط
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`text-xs ${templateImageLayer > 0 ? 'bg-blue-100' : ''}`}
+                              onClick={() => setTemplateImageLayer(10)}
+                            >
+                              أمام جميع الحقول
+                            </Button>
+                          </div>
+                          <div className="pt-2">
+                            <Label className="text-xs mb-1 block">تعديل دقيق لمستوى الطبقة</Label>
+                            <Slider
+                              value={[templateImageLayer]}
+                              onValueChange={(values) => setTemplateImageLayer(values[0])}
+                              min={-20}
+                              max={20}
+                              step={1}
+                              className="my-2"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500">
+                              <span>خلف (-20)</span>
+                              <span>{templateImageLayer}</span>
+                              <span>أمام (20)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* مدير الطبقات */}
+                  <LayersManager
+                    fields={fields}
+                    selectedFieldId={selectedFieldId}
+                    onSelectField={setSelectedFieldId}
+                    onMoveLayer={handleMoveLayer}
+                    onToggleVisibility={toggleFieldVisibility}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>
@@ -1525,7 +1678,9 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
                 formData={formData}
                 editorSettings={{
                   gridEnabled: showGrid,
-                  snapToGrid: snapToGrid
+                  snapToGrid: snapToGrid,
+                  templateImageLayer: templateImageLayer, // تحديد مستوى طبقة صورة القالب
+                  templateImageAsLayer: templateImageAsLayer // معالجة صورة القالب كطبقة مستقلة
                 }}
                 onFieldsChange={(newFields: Field[]) => {
                   setFields(newFields);
@@ -1541,10 +1696,10 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
             </CardContent>
           </Card>
           
-          {/* خصائص الحقل */}
-          <div className="border rounded-lg p-2 bg-gray-50 flex flex-col">
+          {/* خصائص الحقل - زيادة العرض لعرض كامل الخصائص */}
+          <div className="border rounded-lg p-2 bg-gray-50 flex flex-col min-w-[320px] max-w-[350px] w-full">
             <Tabs defaultValue="properties" className="w-full h-full flex flex-col">
-              <TabsList className="grid grid-cols-1 w-full mb-2">
+              <TabsList className="grid grid-cols-2 w-full mb-2">
                 <TabsTrigger value="properties" className="text-xs">
                   <span>الخصائص</span>
                 </TabsTrigger>
@@ -1553,7 +1708,7 @@ export const FieldsPositionEditor: React.FC<FieldsPositionEditorDialogProps | Em
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="properties" className="flex-1 overflow-hidden">
+              <TabsContent value="properties" className="flex-1 overflow-auto max-h-[calc(100vh-200px)]">
                 {selectedField ? (
                   <FieldProperties
                     field={selectedField}
