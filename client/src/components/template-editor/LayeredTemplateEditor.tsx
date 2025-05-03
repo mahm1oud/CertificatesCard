@@ -230,16 +230,17 @@ export function LayeredTemplateEditor({
         </div>
         
         {/* منطقة العرض الرئيسية للقالب */}
-        <div className="flex-1 bg-gray-100 p-4 flex items-center justify-center overflow-auto">
+        <div className="flex-1 bg-gray-100 p-0 flex items-center justify-center overflow-auto">
           <div
-            className="relative bg-white shadow-lg max-w-full max-h-full"
-            style={{ width: '794px', height: '1123px' }} // A4 sizes in px
+            className="relative bg-white shadow-lg w-full h-full"
+            style={{ minHeight: 'calc(100vh - 57px)' }} // الارتفاع الكامل للشاشة مع مراعاة شريط الأدوات العلوي
           >
             {/* صورة القالب الأساسية */}
             <img
               src={templateImageUrl}
               alt={templateName}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain absolute inset-0 z-0"
+              style={{ maxHeight: '100%', maxWidth: '100%' }}
               onError={(e) => {
                 console.error("Error loading template image:", templateId);
                 e.currentTarget.src = 'https://via.placeholder.com/794x1123?text=Template+Image+Not+Found';
@@ -255,6 +256,7 @@ export function LayeredTemplateEditor({
                   left: '50px',
                   width: '100px',
                   height: '100px',
+                  zIndex: 10 // إضافة z-index للشعار
                 }}
               >
                 <img
@@ -277,6 +279,7 @@ export function LayeredTemplateEditor({
                   left: '100px',
                   width: '150px',
                   height: '80px',
+                  zIndex: 20 // إضافة z-index للتوقيع
                 }}
               >
                 <img
@@ -299,6 +302,7 @@ export function LayeredTemplateEditor({
                   right: '80px',
                   width: '120px',
                   height: '120px',
+                  zIndex: 30 // إضافة z-index للختم
                 }}
               >
                 <img

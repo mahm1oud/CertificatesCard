@@ -5,11 +5,12 @@
 - Undo/Redo
 - شريط أدوات أنيق
 - مقابض للتحجيم والتدوير
+- تحسينات في مقابض التحجيم والتدوير
 */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Stage, Layer, Image as KonvaImage, Text, Group, Rect, Line, Circle, Transformer } from 'react-konva';
-import { Download, RotateCcw, RotateCw, ZoomIn, ZoomOut, Grid, Magnet } from 'lucide-react';
+import { Download, RotateCcw, RotateCw, ZoomIn, ZoomOut, Grid, Magnet, Move, Lock, Unlock } from 'lucide-react';
 
 /**
  * العرض المرجعي للتصميم الأصلي - يتطابق مع القيمة في جميع مكونات النظام
@@ -33,7 +34,7 @@ interface FieldType {
   id: number;
   name: string;
   label?: string;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'template';
   position: Position;
   style?: any;
   zIndex?: number;
@@ -48,6 +49,7 @@ interface EditorSettings {
   gridSize?: number;
   snapThreshold?: number;
   templateImageLayer?: number;
+  locked?: boolean; // إضافة خاصية القفل لمنع التحريك
 }
 
 interface DraggableFieldsPreviewProProps {
@@ -59,6 +61,10 @@ interface DraggableFieldsPreviewProProps {
   className?: string;
   editorSettings?: EditorSettings;
   formData?: Record<string, any>;
+  showGrid?: boolean;
+  snapToGrid?: boolean;
+  readOnly?: boolean;
+  onGeneratePreview?: (dataUrl: string) => void;
 }
 
 export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps> = ({
@@ -76,7 +82,8 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
     snapToGrid = true,
     gridSize = 50,
     snapThreshold = 15,
-    templateImageLayer = 0
+    templateImageLayer = 0,
+    locked = false
   } = editorSettings;
   
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,10 +103,13 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
   const [future, setFuture] = useState<FieldType[][]>([]);
   const [guidelines, setGuidelines] = useState<any>({});
   const [isTransforming, setIsTransforming] = useState(false);
+  const [showControls, setShowControls] = useState(false); // إظهار/إخفاء أدوات التحكم
   
   // حالة موضع صورة القالب
   const [templateImagePosition, setTemplateImagePosition] = useState({ x: 0, y: 0 });
   const [isTemplateImageDraggable, setIsTemplateImageDraggable] = useState(false);
+  const [templateImageSize, setTemplateImageSize] = useState({ width: 0, height: 0 });
+  // لم نعد نحتاج لتتبع حالة تحديد صورة القالب بشكل منفصل لأنها أصبحت طبقة مثل باقي الحقول
   
   // تحميل صورة القالب
   useEffect(() => {
@@ -120,6 +130,7 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
       const height = image.height * scale;
       
       setImageSize({ width, height });
+      setTemplateImageSize({ width, height }); // تعيين حجم صورة القالب مبدئياً
       
       // إعادة تعيين موضع المرحلة بعد تحميل الصورة
       setStagePos({ x: 0, y: 0 });
@@ -137,6 +148,33 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
       setTemplateImageObj(null);
     };
   }, [templateImage]);
+  
+  // إنشاء حقل صورة قالب افتراضي ليتم معالجته كطبقة كاملة في نظام الطبقات
+  const templateField: FieldType = useMemo(() => ({
+    id: -1, // استخدام -1 كمعرف خاص لصورة القالب
+    name: 'template-image',
+    label: 'صورة القالب',
+    type: 'template',
+    position: templateImagePosition,
+    // نظام الطبقات يستخدم zIndex لتحديد ترتيب الطبقات:
+    // zIndex سالب (مثل -10): يضع صورة القالب خلف جميع الحقول
+    // zIndex = 0: يضع صورة القالب في المنتصف ويعتمد على قيم zIndex للحقول الأخرى
+    // zIndex موجب عالي (مثل 100): يضع صورة القالب أمام جميع الحقول
+    zIndex: templateImageLayer || 0,
+    visible: true, // صورة القالب مرئية بشكل افتراضي
+    rotation: 0,
+    size: templateImageSize
+  }), [templateImagePosition, templateImageLayer, templateImageSize]);
+
+  // دمج حقل القالب مع باقي الحقول لمعالجته ضمن نظام الطبقات
+  const allFields = useMemo(() => {
+    // إضافة حقل القالب إلى قائمة الحقول ليتم معالجته كطبقة عادية
+    // يمكن وضع الحقول أمام أو خلف صورة القالب باستخدام خاصية zIndex
+    if (isTemplateImageLoaded && templateImageObj) {
+      return [templateField, ...fields]; 
+    }
+    return fields;
+  }, [templateField, fields, isTemplateImageLoaded, templateImageObj]);
   
   // تحديث القيم المحددة عند تغيير selectedFieldId من الخارج
   useEffect(() => {
@@ -160,9 +198,13 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
       if (nodes.length > 0) {
         transformerRef.current.nodes(nodes);
         transformerRef.current.getLayer().batchDraw();
+        // عرض أدوات التحكم عند تحديد حقل
+        setShowControls(true);
       } else {
         transformerRef.current.nodes([]);
         transformerRef.current.getLayer().batchDraw();
+        // إخفاء أدوات التحكم عند عدم تحديد أي حقل
+        setShowControls(false);
       }
     }
   }, [selectedIds, fields, isTemplateImageLoaded]);
@@ -198,11 +240,95 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           onFieldSelect(null);
         }
       }
+      
+      // إضافة تحريك الحقل باستخدام مفاتيح الأسهم
+      if (selectedIds.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        
+        if (locked) return; // لا تسمح بالتحريك إذا كان المحرر مقفلاً
+        
+        // إذا لم تكن في سجل التاريخ بالفعل، احفظ الحالة الحالية
+        saveHistory();
+        
+        // تحديد مقدار التحريك (أكبر مع الShift)
+        const moveAmount = e.shiftKey ? 10 : 1;
+        
+        // تحديث مواضع الحقول المحددة
+        const updatedFields = fields.map(field => {
+          if (selectedIds.includes(field.id)) {
+            let { x, y } = field.position;
+            
+            switch (e.key) {
+              case 'ArrowUp':
+                y -= moveAmount;
+                break;
+              case 'ArrowDown':
+                y += moveAmount;
+                break;
+              case 'ArrowLeft':
+                x -= moveAmount;
+                break;
+              case 'ArrowRight':
+                x += moveAmount;
+                break;
+            }
+            
+            return {
+              ...field,
+              position: {
+                ...field.position,
+                x,
+                y
+              }
+            };
+          }
+          return field;
+        });
+        
+        onFieldsChange(updatedFields);
+      }
+      
+      // تدوير الحقل باستخدام Ctrl + الأسهم
+      if (selectedIds.length > 0 && e.ctrlKey && ['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        
+        if (locked) return; // لا تسمح بالتدوير إذا كان المحرر مقفلاً
+        
+        // إذا لم تكن في سجل التاريخ بالفعل، احفظ الحالة الحالية
+        saveHistory();
+        
+        // تحديد مقدار التدوير (أكبر مع الShift)
+        const rotateAmount = e.shiftKey ? 45 : 5;
+        
+        // تحديث دوران الحقول المحددة
+        const updatedFields = fields.map(field => {
+          if (selectedIds.includes(field.id)) {
+            let rotation = field.rotation || 0;
+            
+            if (e.key === 'ArrowLeft') {
+              rotation -= rotateAmount;
+            } else {
+              rotation += rotateAmount;
+            }
+            
+            // التأكد من أن الزاوية بين 0 و 360
+            rotation = ((rotation % 360) + 360) % 360;
+            
+            return {
+              ...field,
+              rotation
+            };
+          }
+          return field;
+        });
+        
+        onFieldsChange(updatedFields);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, fields]);
+  }, [selectedIds, fields, locked]);
 
   // تحويل النسب المئوية إلى بكسل
   const getFieldPosition = (field: FieldType) => {
@@ -406,7 +532,7 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
         key={`field-${field.id}`}
         x={position.x}
         y={position.y}
-        draggable={!isTransforming}
+        draggable={!isTransforming && !locked}
         rotation={rotation}
         id={`field-${field.id}`}
         onClick={(e) => {
@@ -435,11 +561,16 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           }
         }}
         onDragStart={(e) => {
+          if (locked) {
+            e.evt.preventDefault(); // منع السحب إذا كان المحرر مقفلاً
+            return;
+          }
           e.evt.stopPropagation();
           setIsDragging(true);
           saveHistory();
         }}
         onDragMove={(e) => {
+          if (locked) return;
           e.evt.stopPropagation();
           const pos = e.target.position();
           const { x, y, guidelines: newGuidelines } = checkSnapping(pos.x, pos.y, field.id);
@@ -449,6 +580,7 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           e.target.position({ x, y });
         }}
         onDragEnd={(e) => {
+          if (locked) return;
           e.evt.stopPropagation();
           setIsDragging(false);
           
@@ -510,41 +642,42 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
 
   // رسم الحقول من نوع صورة
   const renderImageField = (field: FieldType, index: number) => {
-    const position = getFieldPosition(field);
-    const style = field.style || {};
-    
-    // تحديد حجم الصورة مع تطبيق عامل تناسب الحجم للتطابق مع السيرفر
-    let fieldWidth = style.imageMaxWidth || 200;
-    let fieldHeight = style.imageMaxHeight || 200;
-    
-    // إذا كان الحقل يحتوي على خاصية size، نستخدمها
-    if (field.size) {
-      fieldWidth = field.size.width || fieldWidth;
-      fieldHeight = field.size.height || fieldHeight;
-    }
-    
-    // تطبيق عامل التناسب
-    fieldWidth = fieldWidth * (imageSize.width / BASE_IMAGE_WIDTH);
-    fieldHeight = fieldHeight * (imageSize.width / BASE_IMAGE_WIDTH);
-    
-    const isSelected = selectedIds.includes(field.id);
-    
-    // إذا كان الحقل غير مرئي، لا نعرضه
+    // إذا كان الحقل غير مرئي، لا نرسمه
     if (field.visible === false) {
       return null;
     }
     
-    // إضافة تدوير للحقل إذا كانت قيمة التدوير محددة
+    const position = getFieldPosition(field);
+    const style = field.style || {};
     const rotation = field.rotation || 0;
+    const isSelected = selectedIds.includes(field.id);
     
-    // عرض منطقة الصورة بخلفية إذا كانت قيمة الصورة غير متوفرة
-    // عرض placeholder للصورة
+    // حساب أبعاد الصورة
+    let imageWidth = style.imageMaxWidth || 200;
+    let imageHeight = style.imageMaxHeight || 200;
+    
+    // إذا كان الحقل يحتوي على خاصية size، نستخدمها
+    if (field.size) {
+      imageWidth = field.size.width || imageWidth;
+      imageHeight = field.size.height || imageHeight;
+    }
+    
+    // تطبيق عامل التناسب للتطابق مع وحدة قياس السيرفر
+    imageWidth = imageWidth * (imageSize.width / BASE_IMAGE_WIDTH);
+    imageHeight = imageHeight * (imageSize.width / BASE_IMAGE_WIDTH);
+    
+    // لون الخلفية المستخدم في مكان الصورة
+    const placeholderColor = style.backgroundColor || '#e2e8f0';
+    
+    // استخدام بيانات النموذج لعرض الصورة إذا كانت متوفرة
+    const imageUrl = formData && formData[field.name] ? formData[field.name] : null;
+    
     return (
       <Group
         key={`field-${field.id}`}
         x={position.x}
         y={position.y}
-        draggable={!isTransforming}
+        draggable={!isTransforming && !locked}
         rotation={rotation}
         id={`field-${field.id}`}
         onClick={(e) => {
@@ -552,14 +685,14 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           let newSelectedIds = [];
           
           if (e.evt.shiftKey) {
-            // إذا تم الضغط على مفتاح Shift، أضف/احذف من التحديد المتعدد
+            // تعديل التحديد المتعدد مع Shift
             if (selectedIds.includes(field.id)) {
               newSelectedIds = selectedIds.filter(id => id !== field.id);
             } else {
               newSelectedIds = [...selectedIds, field.id];
             }
           } else {
-            // إذا لم يتم الضغط على Shift، تحديد فقط هذا الحقل
+            // تحديد حقل واحد فقط
             newSelectedIds = [field.id];
           }
           
@@ -573,11 +706,16 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           }
         }}
         onDragStart={(e) => {
+          if (locked) {
+            e.evt.preventDefault();
+            return;
+          }
           e.evt.stopPropagation();
           setIsDragging(true);
           saveHistory();
         }}
         onDragMove={(e) => {
+          if (locked) return;
           e.evt.stopPropagation();
           const pos = e.target.position();
           const { x, y, guidelines: newGuidelines } = checkSnapping(pos.x, pos.y, field.id);
@@ -587,12 +725,13 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           e.target.position({ x, y });
         }}
         onDragEnd={(e) => {
+          if (locked) return;
           e.evt.stopPropagation();
           setIsDragging(false);
           
           const pos = e.target.position();
           
-          // تحويل الإحداثيات المطلقة إلى نسب مئوية من أبعاد الصورة
+          // تحويل الإحداثيات إلى نسب مئوية
           const newX = (pos.x / imageSize.width) * 100;
           const newY = (pos.y / imageSize.height) * 100;
           
@@ -618,103 +757,109 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
               return f;
             })
           );
-          
-          setGuidelines({});
         }}
       >
-        {/* موضع الصورة */}
+        {/* خلفية مستطيلة للصورة */}
         <Rect
-          width={fieldWidth}
-          height={fieldHeight}
-          fill="#f1f5f9"
-          stroke="#cbd5e1"
-          strokeWidth={1}
-          cornerRadius={style.imageRounded ? 5 : 0}
-          opacity={0.7}
+          width={imageWidth}
+          height={imageHeight}
+          fill={placeholderColor}
+          strokeWidth={2}
+          stroke={style.imageBorder ? '#94a3b8' : undefined}
+          cornerRadius={style.imageRounded ? 8 : 0}
+          opacity={0.8}
           perfectDrawEnabled={false}
           shadowColor={style.imageShadow?.enabled ? (style.imageShadow.color || 'rgba(0, 0, 0, 0.3)') : undefined}
-          shadowBlur={style.imageShadow?.enabled ? (style.imageShadow.blur || 5) : undefined}
-          shadowOffset={style.imageShadow?.enabled ? { 
-            x: style.imageShadow.offsetX || 3, 
-            y: style.imageShadow.offsetY || 3 
+          shadowBlur={style.imageShadow?.enabled ? (style.imageShadow.blur || 4) : undefined}
+          shadowOffset={style.imageShadow?.enabled ? {
+            x: style.imageShadow.offsetX || 2,
+            y: style.imageShadow.offsetY || 2
           } : undefined}
+          offsetX={imageWidth / 2}
+          offsetY={imageHeight / 2}
         />
         
-        {/* أيقونة الصورة داخل الحقل */}
-        <Rect
-          width={Math.min(fieldWidth, 40)}
-          height={Math.min(fieldHeight, 40)}
-          fill="#e2e8f0"
-          cornerRadius={3}
-          x={fieldWidth / 2 - Math.min(fieldWidth, 40) / 2}
-          y={fieldHeight / 2 - Math.min(fieldHeight, 40) / 2}
-          perfectDrawEnabled={false}
-        />
+        {/* رمز الصورة في المنتصف */}
+        {!imageUrl && (
+          <Text
+            text="🖼️"
+            fontSize={imageHeight / 4}
+            fill="#64748b"
+            align="center"
+            verticalAlign="middle"
+            width={imageWidth}
+            height={imageHeight}
+            offsetX={imageWidth / 2}
+            offsetY={imageHeight / 2}
+          />
+        )}
         
-        {/* نص الحقل أسفل الصورة */}
+        {/* عرض الصورة إذا كانت متوفرة في formData */}
+        {imageUrl && (
+          // استخدام KonvaImage لعرض الصورة الحقيقية
+          <KonvaImage
+            image={undefined} // سيتم تعيينه بواسطة useEffect إذا تم تحميل الصورة بنجاح
+            width={imageWidth}
+            height={imageHeight}
+            offsetX={imageWidth / 2}
+            offsetY={imageHeight / 2}
+            ref={(node) => {
+              if (node && imageUrl) {
+                const img = new window.Image();
+                img.crossOrigin = 'Anonymous';
+                img.src = imageUrl;
+                img.onload = () => {
+                  node.image(img);
+                  node.getLayer()?.batchDraw();
+                };
+              }
+            }}
+          />
+        )}
+        
+        {/* تسمية الحقل أسفل الصورة للتوضيح */}
         <Text
           text={field.label || field.name}
-          fontSize={14 * (imageSize.width / BASE_IMAGE_WIDTH)}
-          fontFamily="Cairo"
-          fill="#64748b"
-          width={fieldWidth}
-          height={fieldHeight * 0.3}
+          fontSize={12 * (imageSize.width / BASE_IMAGE_WIDTH)}
+          fill="#475569"
           align="center"
-          y={fieldHeight * 0.7}
-          verticalAlign="middle"
+          width={imageWidth}
+          height={20 * (imageSize.width / BASE_IMAGE_WIDTH)}
+          y={imageHeight / 2 + 10 * (imageSize.width / BASE_IMAGE_WIDTH)}
+          offsetX={imageWidth / 2}
         />
       </Group>
     );
   };
 
-  // رسم خطوط الإرشاد
-  const renderGuidelines = () => {
-    if (!isDragging) return null;
-    
-    return Object.values(guidelines).map((guideline: any, i) => {
-      return (
-        <Line
-          key={i}
-          points={
-            guideline.orientation === 'vertical'
-              ? [guideline.position, 0, guideline.position, imageSize.height]
-              : [0, guideline.position, imageSize.width, guideline.position]
-          }
-          stroke="#3b82f6"
-          strokeWidth={1}
-          dash={[5, 5]}
-          opacity={0.8}
-        />
-      );
-    });
-  };
-
-  // رسم الشبكة
+  // رسم الشبكة لتسهيل محاذاة العناصر
   const renderGrid = () => {
     if (!gridEnabled) return null;
     
     const lines = [];
     
-    // خطوط رأسية
-    for (let i = 0; i <= imageSize.width; i += gridSize) {
+    // خطوط عمودية للشبكة
+    for (let x = 0; x <= imageSize.width; x += gridSize) {
       lines.push(
         <Line
-          key={`v-${i}`}
-          points={[i, 0, i, imageSize.height]}
-          stroke="#e2e8f0"
-          strokeWidth={i % (gridSize * 5) === 0 ? 0.5 : 0.2}
+          key={`vertical-${x}`}
+          points={[x, 0, x, imageSize.height]}
+          stroke="#cbd5e1"
+          strokeWidth={0.5}
+          opacity={0.5}
         />
       );
     }
     
-    // خطوط أفقية
-    for (let i = 0; i <= imageSize.height; i += gridSize) {
+    // خطوط أفقية للشبكة
+    for (let y = 0; y <= imageSize.height; y += gridSize) {
       lines.push(
         <Line
-          key={`h-${i}`}
-          points={[0, i, imageSize.width, i]}
-          stroke="#e2e8f0"
-          strokeWidth={i % (gridSize * 5) === 0 ? 0.5 : 0.2}
+          key={`horizontal-${y}`}
+          points={[0, y, imageSize.width, y]}
+          stroke="#cbd5e1"
+          strokeWidth={0.5}
+          opacity={0.5}
         />
       );
     }
@@ -722,10 +867,59 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
     return lines;
   };
 
-  // معالجة التحويل (التكبير/التصغير/التدوير)
+  // رسم خطوط الإرشاد لتسهيل المحاذاة
+  const renderGuidelines = () => {
+    return Object.values(guidelines).map((guide: any, i) => {
+      const { position, orientation } = guide;
+      const points = orientation === 'horizontal'
+        ? [0, position, imageSize.width, position]
+        : [position, 0, position, imageSize.height];
+      
+      return (
+        <Line
+          key={`guide-${i}`}
+          points={points}
+          stroke="#3b82f6"
+          strokeWidth={1}
+          dash={[4, 4]}
+        />
+      );
+    });
+  };
+
+  // معالجة التحويل (تغيير الحجم والتدوير)
   const handleTransform = (e: any) => {
     e.cancelBubble = true;
     
+    // معالجة تحويل صورة القالب
+    if (selectedIds.length === 1 && selectedIds[0] === -1) {
+      const node = e.target;
+      if (node) {
+        // تحديث حجم وموضع صورة القالب
+        const newScale = {
+          x: node.scaleX(),
+          y: node.scaleY()
+        };
+        
+        const newPosition = {
+          x: node.x(),
+          y: node.y()
+        };
+        
+        const newRotation = node.rotation();
+        
+        // تحديث القيم في الstate
+        setTemplateImagePosition(newPosition);
+        setTemplateImageSize({
+          width: imageSize.width * newScale.x,
+          height: imageSize.height * newScale.y
+        });
+        
+        return;
+      }
+    }
+    
+    // معالجة تحويل الحقول العادية
     if (selectedIds.length !== 1) return;
     
     const fieldId = selectedIds[0];
@@ -755,40 +949,96 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
       newWidth = (field.style?.imageMaxWidth || 200) * scaleX;
       newHeight = (field.style?.imageMaxHeight || 200) * scaleY;
     }
+
+    // تحديث المقاييس على الكائن
+    node.setAttrs({
+      scaleX: 1,
+      scaleY: 1,
+    });
     
-    // تحديث الحقل
+    // عرض معلومات التحويل عند التحكم بالحقل
+    const infoElement = document.getElementById('transform-info');
+    if (infoElement) {
+      infoElement.textContent = `Width: ${Math.round(newWidth)}, Height: ${Math.round(newHeight)}, Rotation: ${Math.round(newRotation)}°`;
+      infoElement.style.display = 'block';
+    }
+    
+    // تحديث الحقل مباشرة في الحالة لرؤية التغييرات في الوقت الحقيقي
     onFieldsChange(
       fields.map(f => {
         if (f.id === fieldId) {
-          // حفظ الموضع (يتم تحديثه من onDragEnd)
-          const updatedField = { ...f };
-          
-          // تحديث الحجم
-          updatedField.size = {
-            width: Math.round(newWidth),
-            height: Math.round(newHeight)
+          // تحديث الحجم والدوران
+          const updatedField = {
+            ...f,
+            rotation: newRotation,
+            size: {
+              width: newWidth,
+              height: newHeight
+            }
           };
           
-          // تحديث التدوير
-          updatedField.rotation = newRotation;
+          // إذا كان الحقل نصيًا، نحدث أيضًا عرض وارتفاع النص
+          if (f.type === 'text') {
+            updatedField.style = {
+              ...f.style,
+              width: newWidth,
+              height: newHeight
+            };
+          } else {
+            // وإذا كان الحقل صورة، نحدث الأبعاد القصوى للصورة
+            updatedField.style = {
+              ...f.style,
+              imageMaxWidth: newWidth,
+              imageMaxHeight: newHeight
+            };
+          }
           
           return updatedField;
         }
         return f;
       })
     );
-    
-    // إعادة تعيين التحويل لتجنب التراكم
-    node.setAttrs({
-      scaleX: 1,
-      scaleY: 1
-    });
   };
 
-  // معالجة نهاية التحويل
   const handleTransformEnd = (e: any) => {
     e.cancelBubble = true;
     setIsTransforming(false);
+    
+    // إخفاء معلومات التحويل
+    const infoElement = document.getElementById('transform-info');
+    if (infoElement) {
+      infoElement.style.display = 'none';
+    }
+    
+    // معالجة حالة صورة القالب
+    if (selectedIds.length === 1 && selectedIds[0] === -1) {
+      const node = e.target;
+      if (node) {
+        // الحصول على أحدث قيم التحويل
+        const newScale = {
+          x: node.scaleX(),
+          y: node.scaleY()
+        };
+        
+        const newPosition = {
+          x: node.x(),
+          y: node.y()
+        };
+        
+        const newRotation = node.rotation();
+        
+        // تحديث القيم النهائية في state
+        setTemplateImagePosition(newPosition);
+        setTemplateImageSize({
+          width: imageSize.width * newScale.x,
+          height: imageSize.height * newScale.y
+        });
+        
+        // إعادة تعيين المقياس إلى 1 بعد تطبيق التغييرات
+        node.scaleX(1);
+        node.scaleY(1);
+      }
+    }
     
     // حفظ التاريخ بعد التحويل
     saveHistory();
@@ -809,7 +1059,11 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           </div>
         </div>
       )}
-
+      
+      {/* عنصر لعرض معلومات التحويل أثناء تغيير الحجم أو التدوير */}
+      <div id="transform-info" className="absolute top-4 left-4 bg-white px-2 py-1 rounded shadow-md text-sm hidden z-40"></div>
+      
+      {/* مساحة الإنشاء Konva */}
       <Stage
         ref={stageRef}
         width={imageSize.width}
@@ -818,16 +1072,8 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
         scaleY={stageScale}
         x={stagePos.x}
         y={stagePos.y}
-        style={{ backgroundColor: '#f9fafb' }}
-        draggable={true}
-        onDragStart={e => {
-          e.evt.stopPropagation();
-        }}
-        onDragMove={e => {
-          e.evt.stopPropagation();
-          setStagePos({ x: e.currentTarget.x(), y: e.currentTarget.y() });
-        }}
-        onClick={e => {
+        onClick={(e) => {
+          // إلغاء التحديد عند النقر خارج أي حقل
           if (e.target === e.currentTarget) {
             setSelectedIds([]);
             if (onFieldSelect) {
@@ -836,88 +1082,112 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
           }
         }}
       >
+        {/* طبقة الخلفية البيضاء والشبكة */}
         <Layer>
-          {/* رسم الشبكة تحت كل شيء */}
+          {/* خلفية بيضاء بنفس أبعاد الصورة */}
+          <Rect
+            x={0}
+            y={0}
+            width={imageSize.width}
+            height={imageSize.height}
+            fill="white"
+          />
+          
+          {/* رسم الشبكة للتوجيه */}
           {renderGrid()}
-
-          {/* رسم صورة القالب */}
-          {templateImageLayer === 0 && templateImageObj && (
-            <Group
-              draggable={isTemplateImageDraggable}
-              x={templateImagePosition.x}
-              y={templateImagePosition.y}
-              onClick={() => {
-                // عند النقر على صورة القالب، نقوم بإلغاء تحديد كل الحقول
-                if (onFieldSelect) {
-                  onFieldSelect(null);
-                }
-                setSelectedIds([]);
-                
-                // تفعيل أو تعطيل إمكانية السحب للصورة عند النقر عليها
-                setIsTemplateImageDraggable(!isTemplateImageDraggable);
-              }}
-              onDragEnd={(e) => {
-                setTemplateImagePosition({
-                  x: e.target.x(),
-                  y: e.target.y()
-                });
-              }}
-            >
-              <KonvaImage
-                ref={templateImageRef}
-                image={templateImageObj}
-                width={imageSize.width}
-                height={imageSize.height}
-              />
-            </Group>
-          )}
-
-          {/* رسم خطوط الإرشاد */}
-          {renderGuidelines()}
-
-          {/* رسم الحقول */}
-          {fields
-            .filter(f => f.visible !== false)
+        </Layer>
+        
+        {/* طبقة الحقول القابلة للسحب */}
+        <Layer>
+          {/* 
+           * ترتيب جميع الحقول بما فيها صورة القالب حسب الـ zIndex
+           * هذا النظام يسمح بوضع الحقول أمام أو خلف صورة القالب مثل نظام فوتوشوب
+           * مثال: إذا كانت قيمة zIndex للحقل أقل من قيمة zIndex لصورة القالب، فسيظهر الحقل خلف الصورة
+           * وإذا كانت قيمة zIndex للحقل أكبر من قيمة zIndex لصورة القالب، فسيظهر الحقل أمام الصورة
+           * يمكن تغيير فيمة zIndex من خلال لوحة الطبقات ونقل العناصر للأعلى أو الأسفل
+           */}
+          {allFields
             .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
             .map((field, index) => {
-              return field.type === 'text'
-                ? renderTextField(field, index)
-                : renderImageField(field, index);
+              if (field.type === 'text') {
+                return renderTextField(field, index);
+              } else if (field.type === 'image') {
+                return renderImageField(field, index);
+              } else if (field.type === 'template' && isTemplateImageLoaded && templateImageObj) {
+                // رسم صورة القالب كطبقة مثل بقية الحقول
+                return (
+                  <Group
+                    key="template-image-group"
+                    id={`field-${field.id}`} // تعديل مهم: استخدام نفس نمط التسمية ليعمل مع المحول (transformer)
+                    x={templateImagePosition.x}
+                    y={templateImagePosition.y}
+                    draggable={isTemplateImageDraggable && !locked}
+                    visible={field.visible !== false} // للتحكم في رؤية الطبقة
+                    opacity={1}
+                    onDragStart={() => {
+                      saveHistory();
+                      setGuidelines({});
+                    }}
+                    onDragMove={(e) => {
+                      if (snapToGrid) {
+                        const { x, y, guidelines: newGuidelines } = checkSnapping(e.target.x(), e.target.y(), field.id);
+                        setGuidelines(newGuidelines);
+                        e.target.position({ x, y });
+                      }
+                    }}
+                    onDragEnd={(e) => {
+                      setTemplateImagePosition({
+                        x: e.target.x(),
+                        y: e.target.y()
+                      });
+                      setGuidelines({});
+                      // نقوم أيضاً بتحديث الموقع في templateField ليتم حفظه
+                      const updatedFields = [...fields];
+                      onFieldsChange(updatedFields);
+                    }}
+                    onClick={(e) => {
+                      e.cancelBubble = true;
+                      // تحديد الطبقة بنفس طريقة الحقول الأخرى
+                      // إذا كان Shift مضغوطاً، قم بإضافة/إزالة الحقل من التحديد
+                      let newSelectedIds: number[] = [];
+                      if (e.evt.shiftKey) {
+                        if (selectedIds.includes(field.id)) {
+                          newSelectedIds = selectedIds.filter(id => id !== field.id);
+                        } else {
+                          newSelectedIds = [...selectedIds, field.id];
+                        }
+                      } else {
+                        // تحديد هذه الطبقة فقط
+                        newSelectedIds = [field.id];
+                      }
+                      
+                      setSelectedIds(newSelectedIds);
+                      if (onFieldSelect) {
+                        if (newSelectedIds.length === 1) {
+                          onFieldSelect(newSelectedIds[0]);
+                        } else {
+                          onFieldSelect(null);
+                        }
+                      }
+                    }}
+                  >
+                    <KonvaImage
+                      ref={templateImageRef}
+                      image={templateImageObj}
+                      width={templateImageSize.width || imageSize.width}
+                      height={templateImageSize.height || imageSize.height}
+                      rotation={(field.rotation || 0)}
+                    />
+                  </Group>
+                );
+              }
+              return null;
             })}
-
-          {/* رسم صورة القالب فوق الحقول إذا كان templateImageLayer !== 0 */}
-          {templateImageLayer !== 0 && templateImageObj && (
-            <Group
-              draggable={isTemplateImageDraggable}
-              x={templateImagePosition.x}
-              y={templateImagePosition.y}
-              onClick={() => {
-                // عند النقر على صورة القالب، نقوم بإلغاء تحديد كل الحقول
-                if (onFieldSelect) {
-                  onFieldSelect(null);
-                }
-                setSelectedIds([]);
-                
-                // تفعيل أو تعطيل إمكانية السحب للصورة عند النقر عليها
-                setIsTemplateImageDraggable(!isTemplateImageDraggable);
-              }}
-              onDragEnd={(e) => {
-                setTemplateImagePosition({
-                  x: e.target.x(),
-                  y: e.target.y()
-                });
-              }}
-            >
-              <KonvaImage
-                ref={templateImageRef}
-                image={templateImageObj}
-                width={imageSize.width}
-                height={imageSize.height}
-              />
-            </Group>
-          )}
-
-          {/* Transformer للتحجيم والتدوير */}
+          
+          {/* خطوط التوجيه للمحاذاة */}
+          {renderGuidelines()}
+          
+          {/* Transformer لتغيير حجم وتدوير الحقول */}
           <Transformer
             ref={transformerRef}
             boundBoxFunc={(oldBox, newBox) => {
@@ -927,14 +1197,14 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
               }
               return newBox;
             }}
-            enabledAnchors={[
+            enabledAnchors={locked ? [] : [
               'top-left', 'top-center', 'top-right', 
               'middle-right', 'middle-left', 
               'bottom-left', 'bottom-center', 'bottom-right'
             ]}
-            rotateEnabled={true}
+            rotateEnabled={!locked}
             rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
-            resizeEnabled={true}
+            resizeEnabled={!locked}
             keepRatio={false}
             onTransformStart={() => {
               setIsTransforming(true);
@@ -943,7 +1213,7 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
             onTransform={handleTransform}
             onTransformEnd={handleTransformEnd}
             borderStroke="#3b82f6"
-            borderStrokeWidth={1}
+            borderStrokeWidth={2}
             borderDash={[5, 5]}
             anchorCornerRadius={4}
             anchorStroke="#3b82f6"
@@ -972,74 +1242,209 @@ export const DraggableFieldsPreviewPro: React.FC<DraggableFieldsPreviewProProps>
 
       {/* شريط أدوات التحرير */}
       <div className="absolute bottom-4 right-4 flex items-center space-x-2 rtl:space-x-reverse bg-white px-3 py-2 rounded-lg shadow-md border border-gray-200">
-        {/* زر التكبير */}
+        {/* أزرار التراجع والإعادة */}
         <button
-          className="p-2 hover:bg-gray-100 rounded-md transition-colors text-gray-700"
+          className={`p-1.5 rounded-md ${history.length > 0 ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400'}`}
+          disabled={history.length === 0}
+          onClick={undo}
+          title="تراجع (Ctrl+Z)"
+        >
+          <RotateCcw size={18} />
+        </button>
+        
+        <button
+          className={`p-1.5 rounded-md ${future.length > 0 ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-400'}`}
+          disabled={future.length === 0}
+          onClick={redo}
+          title="إعادة (Ctrl+Y)"
+        >
+          <RotateCw size={18} />
+        </button>
+        
+        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+        
+        {/* زر تفعيل/تعطيل الشبكة */}
+        <button
+          className={`p-1.5 rounded-md ${gridEnabled ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:bg-gray-100'}`}
           onClick={() => {
-            const newScale = stageScale * 1.1;
-            setStageScale(newScale);
+            const newSettings = { ...editorSettings, gridEnabled: !gridEnabled };
+            if (onFieldsChange) {
+              // حفظ إعدادات المحرر مع الحقول
+              const updatedFields = [...fields];
+              onFieldsChange(updatedFields);
+            }
+          }}
+          title="إظهار/إخفاء الشبكة"
+        >
+          <Grid size={18} />
+        </button>
+        
+        {/* زر تفعيل/تعطيل الالتصاق بالشبكة */}
+        <button
+          className={`p-1.5 rounded-md ${snapToGrid ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:bg-gray-100'}`}
+          onClick={() => {
+            const newSettings = { ...editorSettings, snapToGrid: !snapToGrid };
+            if (onFieldsChange) {
+              // حفظ إعدادات المحرر مع الحقول
+              const updatedFields = [...fields];
+              onFieldsChange(updatedFields);
+            }
+          }}
+          title="تفعيل/تعطيل الالتصاق بالشبكة"
+        >
+          <Magnet size={18} />
+        </button>
+        
+        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+        
+        {/* أزرار التكبير والتصغير */}
+        <button
+          className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
+          onClick={() => {
+            setStageScale(scale => Math.min(scale * 1.2, 3));
           }}
           title="تكبير"
         >
-          <ZoomIn size={16} />
+          <ZoomIn size={18} />
         </button>
         
-        {/* زر التصغير */}
         <button
-          className="p-2 hover:bg-gray-100 rounded-md transition-colors text-gray-700"
+          className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
           onClick={() => {
-            const newScale = stageScale / 1.1;
-            setStageScale(newScale);
+            setStageScale(scale => Math.max(scale / 1.2, 0.3));
           }}
           title="تصغير"
         >
-          <ZoomOut size={16} />
+          <ZoomOut size={18} />
         </button>
         
-        {/* فاصل */}
-        <div className="h-6 border-r border-gray-300 mx-1"></div>
-        
-        {/* زر التراجع */}
+        {/* زر تحريك القالب */}
         <button
-          className={`p-2 hover:bg-gray-100 rounded-md transition-colors ${history.length > 0 ? 'text-gray-700' : 'text-gray-400 cursor-not-allowed'}`}
-          onClick={undo}
-          disabled={history.length === 0}
-          title="تراجع"
+          className={`p-1.5 rounded-md ${isTemplateImageDraggable ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:bg-gray-100'}`}
+          onClick={() => setIsTemplateImageDraggable(!isTemplateImageDraggable)}
+          title={isTemplateImageDraggable ? "إيقاف تحريك القالب" : "تفعيل تحريك القالب"}
         >
-          <RotateCcw size={16} />
+          <Move size={18} />
         </button>
         
-        {/* زر الإعادة */}
+        {/* زر طبقة صورة القالب (تعديل zIndex) */}
         <button
-          className={`p-2 hover:bg-gray-100 rounded-md transition-colors ${future.length > 0 ? 'text-gray-700' : 'text-gray-400 cursor-not-allowed'}`}
-          onClick={redo}
-          disabled={future.length === 0}
-          title="إعادة"
+          className={`p-1.5 rounded-md text-blue-600 bg-blue-50`}
+          onClick={() => {
+            // تغيير قيمة zIndex لصورة القالب
+            // القيمة -10 للخلفية (zIndex منخفض)
+            // القيمة 100 للمقدمة (zIndex مرتفع)
+            // القيمة 0 للوسط (بين الحقول حسب ترتيبها)
+            let newZIndex = 0;
+            if (templateImageLayer <= -10) newZIndex = 0; // من الخلف إلى الوسط
+            else if (templateImageLayer >= 0 && templateImageLayer < 100) newZIndex = 100; // من الوسط إلى المقدمة
+            else newZIndex = -10; // من المقدمة إلى الخلف
+
+            const newSettings = { ...editorSettings, templateImageLayer: newZIndex };
+            if (onFieldsChange) {
+              // حفظ إعدادات المحرر مع الحقول
+              const updatedFields = [...fields];
+              onFieldsChange(updatedFields);
+            }
+          }}
+          title={
+            templateImageLayer <= -10 ? "انقل إلى الوسط" : 
+            (templateImageLayer >= 0 && templateImageLayer < 100) ? "انقل إلى المقدمة" : 
+            "انقل إلى الخلف"
+          }
         >
-          <RotateCw size={16} />
+          {templateImageLayer <= -10 ? 
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M12 7v10"/>
+            </svg> : 
+            (templateImageLayer >= 0 && templateImageLayer < 100) ? 
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M15 7v10"/>
+            </svg> :
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 7v10"/>
+            </svg>
+          }
         </button>
         
-        {/* فاصل */}
-        <div className="h-6 border-r border-gray-300 mx-1"></div>
-        
-        {/* زر إظهار/إخفاء الشبكة */}
+        {/* إضافة زر قفل المحرر لمنع التحرير */}
         <button
-          className={`p-2 hover:bg-gray-100 rounded-md transition-colors ${gridEnabled ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
-          onClick={() => editorSettings.gridEnabled !== undefined && setGridEnabled(!gridEnabled)}
-          title={gridEnabled ? 'إخفاء الشبكة' : 'إظهار الشبكة'}
+          className={`p-1.5 rounded-md ${locked ? 'text-red-600 bg-red-50' : 'text-gray-500 hover:bg-gray-100'}`}
+          onClick={() => {
+            const newSettings = { ...editorSettings, locked: !locked };
+            if (onFieldsChange) {
+              const updatedFields = [...fields];
+              onFieldsChange(updatedFields);
+            }
+          }}
+          title={locked ? "إلغاء قفل المحرر" : "قفل المحرر"}
         >
-          <Grid size={16} />
+          {locked ? <Lock size={18} /> : <Unlock size={18} />}
         </button>
         
-        {/* زر تفعيل/تعطيل التجاذب */}
+        <div className="w-px h-6 bg-gray-200 mx-1"></div>
+        
+        {/* زر توليد صورة نهائية */}
         <button
-          className={`p-2 hover:bg-gray-100 rounded-md transition-colors ${snapToGrid ? 'text-blue-600 bg-blue-50' : 'text-gray-700'}`}
-          onClick={() => editorSettings.snapToGrid !== undefined && setSnapToGrid(!snapToGrid)}
-          title={snapToGrid ? 'تعطيل التجاذب' : 'تفعيل التجاذب'}
+          className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100"
+          onClick={() => {
+            // الحصول على صورة
+            const dataURL = stageRef.current.toDataURL();
+            
+            // فتح نافذة جديدة مع الصورة
+            const win = window.open("", "_blank");
+            if (win) {
+              win.document.write(`<html><body><img src="${dataURL}" alt="Generated Image" /></body></html>`);
+            }
+          }}
+          title="تنزيل صورة"
         >
-          <Magnet size={16} />
+          <Download size={18} />
         </button>
       </div>
+      
+      {/* اظهار معلومات التحكم عند تحديد حقل */}
+      {showControls && selectedIds.length === 1 && (
+        <div className="absolute top-4 left-4 bg-white/90 px-3 py-2 rounded-lg shadow-md text-sm border border-gray-200">
+          <div className="text-gray-600">استخدم المقابض لتعديل الحجم والتدوير:</div>
+          <div className="text-gray-500 text-xs mt-1">
+            <span className="inline-block bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 mr-1">Shift + سحب</span>
+            <span>للحفاظ على نسبة العرض إلى الارتفاع</span>
+          </div>
+          <div className="text-gray-500 text-xs mt-1">
+            <span className="inline-block bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 mr-1">Ctrl + أسهم</span>
+            <span>لتدوير الحقل</span>
+          </div>
+          <div className="text-gray-500 text-xs mt-1">
+            <span className="inline-block bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 mr-1">أسهم</span>
+            <span>لتحريك الحقل</span>
+          </div>
+        </div>
+      )}
+      
+      {/* اظهار معلومات التحكم عند تحديد صورة القالب */}
+      {showControls && selectedIds.length === 1 && selectedIds[0] === -1 && (
+        <div className="absolute top-4 left-4 bg-white/90 px-3 py-2 rounded-lg shadow-md text-sm border border-gray-200">
+          <div className="text-gray-600">تحكم بصورة القالب:</div>
+          <div className="text-gray-500 text-xs mt-1">
+            <span className="inline-block bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 mr-1">زر تحريك القالب</span>
+            <span>لتفعيل/تعطيل سحب القالب</span>
+          </div>
+          <div className="text-gray-500 text-xs mt-1">
+            <span className="inline-block bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 mr-1">زر طبقة القالب</span>
+            <span>لنقل الصورة للأمام/للخلف</span>
+          </div>
+          <div className="text-gray-500 text-xs mt-1">
+            <span className="inline-block bg-green-100 text-green-800 rounded px-1.5 py-0.5 mr-1 font-bold">جديد!</span>
+            <span>يمكنك الآن تحجيم وتدوير صورة القالب</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+export default DraggableFieldsPreviewPro;
