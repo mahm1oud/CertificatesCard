@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient-updated";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,7 @@ import {
   Filter,
   Eye,
   Layout,
+  PanelLeft,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -408,6 +409,22 @@ function TemplatesTable({
                               <Layout className="h-4 w-4 ml-2" />
                               <span className="flex-1">محرر التخطيط</span>
                               <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-500">جديد</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild className="text-indigo-600">
+                            <Link href={`/template-editor-with-layers/${template.id}`}>
+                              <svg className="h-4 w-4 ml-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 3h12M6 15h12M6 11h12M6 7h12M6 19h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                              <span className="flex-1">محرر الطبقات القياسي</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-500">مستقر</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild className="text-green-600">
+                            <Link href={`/advanced-layer-editor/${template.id}`}>
+                              <PanelLeft className="h-4 w-4 ml-2" />
+                              <span className="flex-1">محرر الطبقات المتقدم</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-500/10 text-green-500">جديد</span>
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild className="text-blue-600">

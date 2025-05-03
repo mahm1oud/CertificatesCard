@@ -4,6 +4,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* تنسيقات مخصصة لمحرر الطبقات */
+.layers-panel-simple {
+  position: relative;
+}
+
+.layers-panel-simple .layer-item {
+  transition: all 0.2s ease;
+}
+
+.layers-panel-simple .layer-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.draggable-fields-preview-with-layers .controls {
+  backdrop-filter: blur(8px);
+  transition: opacity 0.2s ease;
+}
+
+.draggable-fields-preview-with-layers .resize-handle {
+  width: 8px;
+  height: 8px;
+  background-color: #4f46e5;
+  border-radius: 2px;
+  border: 1px solid white;
+  position: absolute;
+}
+
+.template-image-layer {
+  position: relative;
+}
+
+.template-image-layer::after {
+  content: "طبقة صورة القالب";
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  background-color: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  border-radius: 0 0 0 4px;
+  pointer-events: none;
+}
+
 @layer components {
   .template-preview-text {
     @apply py-2 px-4 max-w-[80%] text-center shadow-md bg-white/20 backdrop-blur-sm rounded border border-dashed border-gray-300/60;

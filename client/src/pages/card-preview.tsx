@@ -127,44 +127,54 @@ const CardPreview = () => {
     if (card && card.imageUrl) {
       console.log("Checking image URL:", card.imageUrl);
       
+      // تحسين: استخدام نسخة منخفضة الجودة للعرض الأولي لتسريع العرض
+      const previewQualityUrl = card.imageUrl.includes('?') 
+        ? `${card.imageUrl}&quality=preview` 
+        : `${card.imageUrl}?quality=preview`;
+      
+      // عرض الصورة بشكل فوري حتى نتأكد من وجودها
+      setPreviewUrl(previewQualityUrl);
+      
       // التحقق إذا كان المسار يحتوي على '/generated/' وإصلاحه إذا لزم الأمر
       const correctedUrl = card.imageUrl.includes('/generated/') 
         ? card.imageUrl 
         : card.imageUrl.replace('/uploads/', '/uploads/generated/');
       
-      console.log("Corrected URL to check:", correctedUrl);
+      // محاولة استخدام الرابط المصحح مع جودة محسنة للعرض السريع
+      const optimizedUrl = correctedUrl.includes('?') 
+        ? `${correctedUrl}&quality=low` 
+        : `${correctedUrl}?quality=low`;
       
-      // التحقق من صحة رابط الصورة
-      fetch(correctedUrl, { method: 'HEAD' })
-        .then(response => {
-          if (!response.ok) {
-            console.log("Image URL not valid, will regenerate");
-            setPreviewUrl(null);
-          } else {
-            console.log("Image URL is valid:", correctedUrl);
-            setPreviewUrl(correctedUrl);
-          }
-        })
-        .catch((error) => {
-          console.log("Error fetching image:", error);
-          console.log("Will try original URL as fallback:", card.imageUrl);
-          
-          // محاولة أخرى باستخدام المسار الأصلي
-          fetch(card.imageUrl, { method: 'HEAD' })
-            .then(response => {
-              if (response.ok) {
-                console.log("Original URL is valid:", card.imageUrl);
-                setPreviewUrl(card.imageUrl);
-              } else {
-                console.log("Both URLs failed, will regenerate");
-                setPreviewUrl(null);
-              }
-            })
-            .catch(() => {
-              console.log("Both URLs failed with error, will regenerate");
-              setPreviewUrl(null);
-            });
-        });
+      // الطريقة المعدلة: نعرض صورة أولية بسرعة ثم نحاول تحسين جودتها
+      const img = new Image();
+      img.onload = () => {
+        // الصورة متوفرة وتم تحميلها بنجاح
+        console.log("Image loaded successfully:", optimizedUrl);
+        setPreviewUrl(optimizedUrl);
+      };
+      img.onerror = () => {
+        // محاولة استخدام الرابط الأصلي إذا فشل الرابط المحسن
+        console.log("Optimized URL failed, trying original URL:", card.imageUrl);
+        
+        // محاولة تحميل الصورة الأصلية
+        const originalImg = new Image();
+        originalImg.src = card.imageUrl;
+        
+        // في حالة نجاح تحميل الصورة الأصلية
+        originalImg.onload = () => {
+          console.log("Original URL loaded successfully");
+          setPreviewUrl(card.imageUrl);
+        };
+        
+        // في حالة فشل تحميل الصورة الأصلية أيضًا
+        originalImg.onerror = () => {
+          console.log("Both URLs failed, will regenerate image");
+          setPreviewUrl(null);
+        };
+      };
+      
+      // بدء تحميل الصورة المحسنة
+      img.src = optimizedUrl;
     } else {
       setPreviewUrl(null);
     }
@@ -740,11 +750,20 @@ const DesignEditorDialog = ({
   const [editedFields, setEditedFields] = useState<any[]>([]);
   const { toast } = useToast();
 
-  // عندما تفتح النافذة، حول الحقول إلى التنسيق المطلوب للمحرر
+  // عندما تفتح النافذة، حول الحقول إلى التنسيق المطلوب للمحرر مع استخدام البيانات المدخلة
   useEffect(() => {
     if (isOpen && templateFields && templateFields.length > 0) {
-      // تحويل حقول القالب إلى التنسيق المطلوب لمكون المحرر
+      console.log("البيانات المدخلة:", formData);
+      
+      // تحويل حقول القالب إلى التنسيق المطلوب لمكون المحرر مع الاحتفاظ بمواضع وخصائص الحقول
       const convertedFields = templateFields.map(field => {
+        // التأكد من أن نوع الحقل متوافق مع ما يتوقعه المحرر
+        // DraggableFieldsPreviewPro يتوقع 'text' | 'image' | 'template'
+        let fieldType = field.type;
+        if (fieldType !== 'text' && fieldType !== 'image' && fieldType !== 'template') {
+          fieldType = 'text'; // تحويل إلى نص افتراضي إذا كان النوع غير معروف
+        }
+        
         // التأكد من أن لكل حقل موضع صالح
         let position = field.position;
         if (!position || typeof position !== 'object') {
@@ -754,13 +773,21 @@ const DesignEditorDialog = ({
         // التأكد من أن خصائص النمط موجودة ومعرفة
         const fieldStyle = field.style || {};
         
-        return {
-          ...field,
+        // مسح الكائن الأصلي لتجنب أي تداخل في الخصائص
+        // تحضير الحقل بخصائصه المطلوبة فقط مع تصحيح القيم
+        const preparedField: any = {
           id: field.id,
-          position,
+          name: field.name,
+          label: field.label || field.name,
+          type: fieldType,
+          position: {
+            x: position.x,
+            y: position.y,
+            snapToGrid: position.snapToGrid || false
+          },
           style: fieldStyle,
           // ضمان وجود خصائص ضرورية لعرض الحقل
-          visible: fieldStyle.visible !== false,
+          visible: true, // تأكيد أن جميع الحقول مرئية
           zIndex: fieldStyle.zIndex || fieldStyle.layer || 1,
           rotation: fieldStyle.rotation || 0,
           // إضافة معلومات الحجم إذا كانت متوفرة
@@ -769,20 +796,54 @@ const DesignEditorDialog = ({
             height: fieldStyle.height || 50
           }
         };
+        
+        // إضافة البيانات المدخلة من المستخدم إذا كانت متوفرة
+        if (formData && formData[field.name] !== undefined) {
+          if (field.type === 'image' && typeof formData[field.name] === 'string') {
+            // إذا كان الحقل نوع صورة، نضيف مسار الصورة إلى الحقل
+            preparedField.defaultValue = formData[field.name];
+            preparedField.imageUrl = formData[field.name];
+          } else {
+            // إذا كان الحقل نصي أو نوع آخر
+            preparedField.defaultValue = formData[field.name];
+            preparedField.value = formData[field.name]; // إضافة خاصية value التي يستخدمها المحرر أيضًا
+          }
+        }
+        
+        return preparedField;
       });
       
+      console.log("الحقول المحولة للمحرر:", convertedFields);
       setEditedFields(convertedFields);
-      console.log("تم تحويل حقول القالب للمحرر:", convertedFields);
     }
-  }, [isOpen, templateFields]);
+  }, [isOpen, templateFields, formData]);
 
   // عند حفظ التغييرات
   const handleSaveDesign = () => {
     try {
-      onFieldsUpdated(editedFields);
+      console.log("حفظ الحقول المعدلة:", editedFields);
+      
+      if (!editedFields || editedFields.length === 0) {
+        toast({
+          title: "تنبيه",
+          description: "لا توجد حقول لحفظها. تأكد من وجود الحقول في التصميم.",
+          variant: "warning"
+        });
+        return;
+      }
+      
+      // التحقق من خاصية visible لكل حقل للتأكد من أنها ليست false
+      const fieldsToSave = editedFields.map(field => ({
+        ...field,
+        visible: field.visible === false ? undefined : field.visible || true,
+      }));
+      
+      console.log("الحقول بعد التحقق من visible:", fieldsToSave);
+      
+      onFieldsUpdated(fieldsToSave);
       toast({
         title: "تم الحفظ",
-        description: "تم حفظ تغييرات التصميم بنجاح",
+        description: "تم حفظ تغييرات التصميم بنجاح. الآن يمكنك رؤية التغييرات في البطاقة.",
       });
       onClose();
     } catch (error) {
@@ -812,6 +873,11 @@ const DesignEditorDialog = ({
           </DialogHeader>
           
           <div className="flex-1 overflow-auto p-0">
+            {/* إضافة سجلات تصحيح لمعرفة البيانات المرسلة */}
+            {console.log("Sending to editor - ID:", templateId)}
+            {console.log("Sending to editor - Fields:", editedFields)}
+            {console.log("Sending to editor - FormData:", formData)}
+            {console.log("Sending to editor - Image:", templateImage)}
             <FieldsPositionEditor
               templateId={templateId}
               initialFields={editedFields}

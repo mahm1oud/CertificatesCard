@@ -10,9 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DialogFooter } from "@/components/ui/dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Plus, Minus, Trash2, ChevronUp, ChevronDown, Loader2, Copy, Move, PanelLeft, Image as ImageIcon, ListOrdered } from "lucide-react";
+import { Plus, Minus, Trash2, ChevronUp, ChevronDown, Loader2, Copy, Move, PanelLeft, Image as ImageIcon, ListOrdered, Layers } from "lucide-react";
 import { CopyFieldsDialog } from "@/components/template-editor/CopyFieldsDialog";
 import { FieldsPositionEditor } from "@/components/template-editor/FieldsPositionEditor";
 import { SortableFieldsList } from "@/components/sortable/SortableFieldsList";
@@ -504,6 +505,25 @@ export default function TemplateFieldsPage() {
           </Button>
           <Button 
             variant="outline" 
+            onClick={() => {
+              console.log('محرر الطبقات التقليدي - معرف القالب:', templateId);
+              setLocation(`/template-editor-with-layers/${templateId}`);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Layers className="h-4 w-4" />
+            محرر الطبقات التقليدي
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation(`/advanced-layer-editor/${templateId}`)}
+            className="flex items-center gap-2"
+          >
+            <PanelLeft className="h-4 w-4" />
+            محرر الطبقات المتقدم
+          </Button>
+          <Button 
+            variant="outline" 
             onClick={() => setSortableListOpen(true)}
             className="flex items-center gap-2"
           >
@@ -647,14 +667,15 @@ export default function TemplateFieldsPage() {
       </div>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {editingField ? 'تعديل الحقل' : 'إضافة حقل جديد'}
             </DialogTitle>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit}>
+          <ScrollArea className="max-h-[calc(90vh-160px)] pr-4">
+            <form onSubmit={handleSubmit}>
             <Tabs defaultValue="basic">
               <TabsList className="grid grid-cols-4 mb-4">
                 <TabsTrigger value="basic">معلومات أساسية</TabsTrigger>
@@ -1758,6 +1779,7 @@ export default function TemplateFieldsPage() {
               </DialogFooter>
             </div>
           </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

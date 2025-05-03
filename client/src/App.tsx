@@ -1,14 +1,9 @@
 import { Switch, Route } from "wouter";
-import { queryClient, apiRequest } from "./lib/queryClient";
+import { queryClient, apiRequest } from "./lib/queryClient-updated";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
-import HomePageSinglePage from "@/pages/home-single-page";
-import TemplateForm from "@/pages/template-form";
-import CardPreview from "@/pages/card-preview";
-import FullCardView from "@/pages/full-card-view";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -18,9 +13,17 @@ import { ThemeProvider } from "next-themes";
 import { lazy, Suspense, useState, useEffect } from "react";
 import AccessLayers from "@/components/access-layers";
 import { Loader2 } from "lucide-react";
-import TemplateEditorUnified from "@/pages/template-editor-unified";
+
+// تحميل كل الصفحات بشكل متأخر لتقليل حجم الحزمة الأساسية
+const Home = lazy(() => import("@/pages/home"));
+const HomePageSinglePage = lazy(() => import("@/pages/home-single-page"));
+const TemplateForm = lazy(() => import("@/pages/template-form"));
+const CardPreview = lazy(() => import("@/pages/card-preview"));
+const FullCardView = lazy(() => import("@/pages/full-card-view"));
+const TemplateEditorUnified = lazy(() => import("@/pages/template-editor-unified"));
 const TemplateEditorWithLayers = lazy(() => import("@/pages/template-editor-with-layers"));
 const TemplateEditorWithLayersNew = lazy(() => import("@/pages/template-editor-with-layers-new"));
+const AdvancedLayerEditor = lazy(() => import("@/pages/advanced-layer-editor"));
 
 // Lazy load admin and auth pages
 const AuthPage = lazy(() => import("@/pages/auth-page"));
@@ -135,6 +138,8 @@ function Router() {
             <Route path="/template-editor-unified/:id?" component={TemplateEditorUnified} />
             <Route path="/template-editor-with-layers/:templateId?" component={TemplateEditorWithLayers} />
             <Route path="/template-editor-with-layers-new/:templateId?" component={TemplateEditorWithLayersNew} />
+            <Route path="/advanced-layer-editor/:templateId?" component={AdvancedLayerEditor} />
+            {/* تم تعطيل هذا المسار مؤقتًا */}
             <Route path="/social-template-editor/:templateId" component={SocialTemplateEditor} />
 
             {/* User routes (protected) */}

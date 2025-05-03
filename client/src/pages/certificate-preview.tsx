@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Dialog, 
   DialogContent, 
@@ -250,65 +251,69 @@ export default function CertificatePreview() {
       
       {/* Email Share Dialog */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>مشاركة عبر البريد الإلكتروني</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSendEmail}>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">عنوان البريد الإلكتروني</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="أدخل عنوان البريد الإلكتروني"
-                  value={shareEmail}
-                  onChange={(e) => setShareEmail(e.target.value)}
-                  required
-                />
+          <ScrollArea className="max-h-[calc(90vh-160px)]">
+            <form onSubmit={handleSendEmail}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">عنوان البريد الإلكتروني</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="أدخل عنوان البريد الإلكتروني"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={isSending}>
-                {isSending ? (
-                  <>
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الإرسال...
-                  </>
-                ) : (
-                  "إرسال"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button type="submit" disabled={isSending}>
+                  {isSending ? (
+                    <>
+                      <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    "إرسال"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
       
       {/* QR Code Dialog */}
       <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
-        <DialogContent className="text-center">
+        <DialogContent className="text-center max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>رمز QR للتحقق</DialogTitle>
           </DialogHeader>
-          <div className="py-6 flex justify-center">
-            <img src={qrCodeUrl} alt="QR Code" className="max-w-full" />
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            يمكن استخدام رمز QR للتحقق من صحة الشهادة
-          </p>
-          <Button variant="outline" onClick={handleCopyLink}>
-            {isCopied ? (
-              <>
-                <Check className="ml-2 h-4 w-4 text-green-500" />
-                تم النسخ!
-              </>
-            ) : (
-              <>
-                <Copy className="ml-2 h-4 w-4" />
-                نسخ رابط التحقق
-              </>
-            )}
-          </Button>
+          <ScrollArea className="max-h-[calc(90vh-160px)]">
+            <div className="py-6 flex justify-center">
+              <img src={qrCodeUrl} alt="QR Code" className="max-w-full" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              يمكن استخدام رمز QR للتحقق من صحة الشهادة
+            </p>
+            <Button variant="outline" onClick={handleCopyLink}>
+              {isCopied ? (
+                <>
+                  <Check className="ml-2 h-4 w-4 text-green-500" />
+                  تم النسخ!
+                </>
+              ) : (
+                <>
+                  <Copy className="ml-2 h-4 w-4" />
+                  نسخ رابط التحقق
+                </>
+              )}
+            </Button>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

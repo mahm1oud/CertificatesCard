@@ -8,15 +8,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { DraggableFieldsPreviewFixed, FieldType } from '../components/template-editor/DraggableFieldsPreviewFixed';
+import { DraggableFieldsPreviewWithLayers } from '../components/template-editor/DraggableFieldsPreviewWithLayers';
+import { FieldType } from '../components/template-editor/DraggableFieldsPreviewFixed';
 import { LayersPanelSimple } from '../components/template-editor/LayersPanelSimple';
+import { FieldPropertiesPanel } from '../components/template-editor/FieldPropertiesPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Save, Image, TextIcon, Download, Loader2 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Save, Image, Type as TextIcon, Download, Loader2, Layers, Settings, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // عينة من الحقول للاختبار
 const sampleFields = [
@@ -297,11 +301,73 @@ export default function TemplateEditorWithLayers() {
     });
   };
   
+  // حفظ التغييرات في قاعدة البيانات
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!templateId) return null;
+      
+      // حفظ حقول القالب
+      const fieldsToSave = fields.map(field => ({
+        ...field,
+        templateId: parseInt(templateId)
+      }));
+      
+      return await apiRequest('PUT', `/api/admin/template-fields/${templateId}`, fieldsToSave);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'تم الحفظ بنجاح',
+        description: 'تم حفظ جميع تغييرات القالب'
+      });
+    },
+    onError: (error) => {
+      console.error('خطأ في الحفظ:', error);
+      toast({
+        title: 'خطأ في الحفظ',
+        description: 'حدث خطأ أثناء حفظ بيانات القالب',
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // الحقل المحدد حالياً
+  const selectedField = React.useMemo(() => {
+    if (selectedFieldId === null) return null;
+    if (selectedFieldId === -1) {
+      // حقل خاص لصورة القالب
+      return {
+        id: -1,
+        name: 'template_image',
+        label: 'صورة القالب',
+        type: 'template',
+        position: { x: 0, y: 0 },
+        zIndex: templateImageLayer,
+        visible: isTemplateImageVisible
+      };
+    }
+    return fields.find(f => f.id === selectedFieldId) || null;
+  }, [selectedFieldId, fields, templateImageLayer, isTemplateImageVisible]);
+  
+  // تحديث حقل
+  const handleFieldUpdate = (updatedField: any) => {
+    if (updatedField.id === -1) {
+      // تحديث خصائص صورة القالب
+      setTemplateImageLayer(updatedField.zIndex || 0);
+      setIsTemplateImageVisible(updatedField.visible !== false);
+    } else {
+      // تحديث حقل عادي
+      setFields(fields.map(field => 
+        field.id === updatedField.id ? updatedField : field
+      ));
+    }
+  };
+  
   return (
     <div className="template-editor-page p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => navigate('/admin/templates')}>
+            <XCircle className="mr-2 h-4 w-4" />
             الرجوع للقوالب
           </Button>
           <h1 className="text-2xl font-bold">
@@ -321,90 +387,115 @@ export default function TemplateEditorWithLayers() {
             إضافة صورة
           </Button>
           
-          <Button variant="default">
-            <Save className="mr-2 h-4 w-4" />
-            حفظ
+          <Button 
+            variant="default" 
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending || !templateId}
+          >
+            {saveMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                جاري الحفظ...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                حفظ التغييرات
+              </>
+            )}
           </Button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* لوحة الطبقات */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>الطبقات</CardTitle>
-              <CardDescription>
-                إدارة ترتيب ورؤية الطبقات
-              </CardDescription>
-            </CardHeader>
+        <div className="lg:col-span-3">
+          <Tabs defaultValue="layers" className="h-full">
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="layers">
+                <Layers className="w-4 h-4 mr-2" />
+                الطبقات
+              </TabsTrigger>
+              <TabsTrigger value="properties">
+                <Settings className="w-4 h-4 mr-2" />
+                الخصائص
+              </TabsTrigger>
+            </TabsList>
             
-            <CardContent>
-              <LayersPanelSimple
-                layers={layersForDisplay}
-                selectedLayerId={selectedFieldId}
-                onLayerSelect={setSelectedFieldId}
-                onLayerVisibilityToggle={handleLayerVisibilityToggle}
-                onMoveLayerUp={(id) => {
-                  // تنفيذ منطق نقل الطبقة للأعلى
-                  const layerIndex = layersForDisplay.findIndex(layer => layer.id === id);
-                  if (layerIndex > 0) {
-                    handleLayerOrderChange(layerIndex, layerIndex - 1);
-                  }
-                }}
-                onMoveLayerDown={(id) => {
-                  // تنفيذ منطق نقل الطبقة للأسفل
-                  const layerIndex = layersForDisplay.findIndex(layer => layer.id === id);
-                  if (layerIndex < layersForDisplay.length - 1) {
-                    handleLayerOrderChange(layerIndex, layerIndex + 1);
-                  }
-                }}
-              />
-            </CardContent>
-          </Card>
+            <TabsContent value="layers" className="h-[calc(100%-50px)]">
+              <ScrollArea className="h-full">
+                <LayersPanelSimple
+                  fields={fields}
+                  hasTemplateImage={true}
+                  templateImageZIndex={templateImageLayer}
+                  isTemplateImageVisible={isTemplateImageVisible}
+                  onFieldsUpdate={setFields}
+                  onLayerClick={setSelectedFieldId}
+                  activeLayerId={selectedFieldId}
+                  onTemplateImageUpdate={(zIndex, isVisible) => {
+                    setTemplateImageLayer(zIndex);
+                    setIsTemplateImageVisible(isVisible);
+                  }}
+                  onAddField={handleAddField}
+                />
+              </ScrollArea>
+            </TabsContent>
+            
+            <TabsContent value="properties" className="h-[calc(100%-50px)]">
+              <ScrollArea className="h-full">
+                <FieldPropertiesPanel
+                  field={selectedField}
+                  onFieldUpdate={handleFieldUpdate}
+                  availableFonts={['Cairo', 'Tajawal', 'Arial', 'sans-serif', 'Verdana', 'Tahoma']}
+                />
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </div>
         
         {/* معاينة القالب */}
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>معاينة القالب</CardTitle>
+        <div className="lg:col-span-9">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle>معاينة القالب مع دعم الطبقات</CardTitle>
               <CardDescription>
-                يمكنك سحب العناصر لتغيير مواضعها في القالب
+                يمكنك سحب العناصر لتغيير مواضعها، وتحريك طبقات أمام أو خلف صورة القالب
               </CardDescription>
             </CardHeader>
             
-            <CardContent>
+            <CardContent className="flex-1 pb-0">
               {isLoadingTemplate || isLoadingFields ? (
                 <div className="flex flex-col items-center justify-center p-8 space-y-4">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   <p>جاري تحميل بيانات القالب...</p>
                 </div>
               ) : (
-                <DraggableFieldsPreviewFixed
-                  templateImage={templateImage}
-                  fields={fields}
-                  onFieldsChange={(updatedFields: FieldType[]) => setFields(updatedFields)}
-                  selectedFieldId={selectedFieldId}
-                  onSelectedFieldChange={setSelectedFieldId}
-                  onImageExport={handleExportImage}
-                  templateImageLayer={templateImageLayer}
-                  isTemplateImageVisible={isTemplateImageVisible}
-                  onTemplateImageLayerChange={setTemplateImageLayer}
-                  onTemplateImageVisibilityChange={setIsTemplateImageVisible}
-                  editorSettings={{
-                    gridEnabled: true,
-                    snapToGrid: true,
-                    gridSize: 50,
-                    snapThreshold: 10
-                  }}
-                />
+                <div className="h-full">
+                  <DraggableFieldsPreviewWithLayers
+                    templateImage={templateImage}
+                    fields={fields}
+                    onFieldsChange={(updatedFields: FieldType[]) => setFields(updatedFields)}
+                    selectedFieldId={selectedFieldId}
+                    onSelectedFieldChange={setSelectedFieldId}
+                    onImageExport={handleExportImage}
+                    templateImageLayer={templateImageLayer}
+                    isTemplateImageVisible={isTemplateImageVisible}
+                    onTemplateImageLayerChange={setTemplateImageLayer}
+                    onTemplateImageVisibilityChange={setIsTemplateImageVisible}
+                    editorSettings={{
+                      gridEnabled: true,
+                      snapToGrid: true,
+                      gridSize: 20,
+                      snapThreshold: 10
+                    }}
+                  />
+                </div>
               )}
             </CardContent>
             
-            <CardFooter>
+            <CardFooter className="border-t mt-auto">
               <div className="text-sm text-muted-foreground">
-                <strong>نصيحة:</strong> يمكنك تغيير ترتيب الطبقات من اللوحة الجانبية لوضع العناصر أمام أو خلف صورة القالب
+                <strong>طريقة الاستخدام:</strong> انقر على حقل لتحديده، ثم يمكنك تعديل خصائصه في لوحة الخصائص. استخدم لوحة الطبقات لتغيير ترتيب العناصر ووضعها أمام أو خلف صورة القالب.
               </div>
             </CardFooter>
           </Card>
