@@ -16,8 +16,11 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { I18nProvider, useTranslation } from "@/lib/i18n";
 import { ThemeProvider } from "next-themes";
 import { lazy, Suspense, useState, useEffect } from "react";
+import AccessLayers from "@/components/access-layers";
 import { Loader2 } from "lucide-react";
 import TemplateEditorUnified from "@/pages/template-editor-unified";
+const TemplateEditorWithLayers = lazy(() => import("@/pages/template-editor-with-layers"));
+const TemplateEditorWithLayersNew = lazy(() => import("@/pages/template-editor-with-layers-new"));
 
 // Lazy load admin and auth pages
 const AuthPage = lazy(() => import("@/pages/auth-page"));
@@ -130,6 +133,8 @@ function Router() {
             <Route path="/certificate/:certificateId" component={FullCertificateView} />
             <Route path="/template-editor/:id" component={TemplateEditor} />
             <Route path="/template-editor-unified/:id?" component={TemplateEditorUnified} />
+            <Route path="/template-editor-with-layers/:templateId?" component={TemplateEditorWithLayers} />
+            <Route path="/template-editor-with-layers-new/:templateId?" component={TemplateEditorWithLayersNew} />
             <Route path="/social-template-editor/:templateId" component={SocialTemplateEditor} />
 
             {/* User routes (protected) */}
@@ -174,6 +179,7 @@ function App() {
             <AuthProvider>
               <Toaster />
               <Router />
+              <AccessLayers />
             </AuthProvider>
           </I18nProvider>
         </TooltipProvider>

@@ -869,17 +869,56 @@ export default function TemplateEditPage() {
           </div>
         </div>
         
-        <div className="mt-6">
-          <Button 
-            type="submit" 
-            size="lg" 
-            className="min-w-32"
-            disabled={isSubmitting}
-          >
-            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            <Save className="ml-2 h-4 w-4" />
-            {isEditing ? 'تحديث القالب' : 'إضافة القالب'}
-          </Button>
+        <div className="mt-6 flex justify-between">
+          <div className="flex gap-2">
+            <Button 
+              type="submit" 
+              size="lg" 
+              className="min-w-32"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              <Save className="ml-2 h-4 w-4" />
+              {isEditing ? 'تحديث القالب' : 'إضافة القالب'}
+            </Button>
+          </div>
+          
+          {isEditing && (
+            <div className="flex gap-2">
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setLocation(`/template-editor-with-layers-new/${templateId}`)}
+              >
+                <ImageIcon className="ml-2 h-4 w-4" />
+                محرر الطبقات المتقدم 2.0
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setLocation(`/template-editor-with-layers/${templateId}`)}
+              >
+                <ImageIcon className="ml-2 h-4 w-4" />
+                محرر الطبقات المتقدم 1.0
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setLocation(`/template-editor-unified/${templateId}`)}
+              >
+                <ImageIcon className="ml-2 h-4 w-4" />
+                محرر القوالب الموحد
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setLocation(`/template-editor/${templateId}`)}
+              >
+                <ImageIcon className="ml-2 h-4 w-4" />
+                محرر القوالب التقليدي
+              </Button>
+            </div>
+          )}
         </div>
       </form>
     </div>

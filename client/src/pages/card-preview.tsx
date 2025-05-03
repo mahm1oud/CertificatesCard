@@ -509,16 +509,16 @@ const CardPreview = () => {
                 />
               ) : (
                 // إذا لم تكن هناك صورة متاحة، استخدم Konva لتوليد واحدة
-                <div className="rounded-md shadow-md bg-white flex items-center justify-center" style={{ maxHeight: 'calc(95vh-140px)' }}>
+                <div className="rounded-md shadow-md bg-white flex items-center justify-center" style={{ maxHeight: 'calc(95vh - 140px)', minHeight: '600px' }}>
                   <KonvaImageGenerator
                     templateImage={card.template?.imageUrl || ''}
                     fields={updatedFields.length > 0 ? updatedFields : templateFields}
                     formData={card.formData || {}}
-                    width={400}
-                    height={600}
+                    width={500}
+                    height={700}
                     onImageGenerated={handleImageGenerated}
                     onError={handleImageError}
-                    className="max-h-[calc(95vh-140px)] max-w-full"
+                    className="max-h-[calc(95vh_-_140px)] max-w-full object-contain"
                   />
                 </div>
               )}
