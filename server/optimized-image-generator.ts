@@ -1,18 +1,24 @@
 /**
- * مولد صور محسّن للبطاقات والشهادات
- * الإصدار 3.1 - مايو 2025
+ * مولد صور محسّن للبطاقات والشهادات - الإصدار السريع
+ * الإصدار 4.0 - مايو 2025
  * 
  * ميزات هذا المولد المحسن:
  * 1. يضمن تطابق 100% بين معاينة المحرر والصورة النهائية
  * 2. يستخدم معامل قياس (Scaling Factor) للتعويض عن فرق الحجم بين الواجهة والسيرفر
  * 3. كود أكثر إيجازاً وأسهل للصيانة
  * 4. يدعم المرونة في ضبط أبعاد الصورة الناتجة
+ * 5. يستخدم نظام ذاكرة تخزين مؤقت للحقول المشتركة
+ * 6. يدعم توليد صور بجودات مختلفة (منخفضة، متوسطة، عالية، تنزيل)
+ * 7. يستخدم WebP للمعاينة لتسريع التحميل
+ * 8. يقوم بتوازي العمليات لتسريع المعالجة
  * 
- * تحديثات الإصدار 3.1:
- * - توحيد معامل القياس بين السيرفر والواجهة (BASE_IMAGE_WIDTH = 1000)
- * - توحيد معالجة الظلال (shadowOffset) بين المكونات
- * - تحسين التوثيق والتعليقات
- * - إضافة أمثلة لتوضيح آلية التطابق
+ * تحديثات الإصدار 4.0:
+ * - تطبيق نظام تخزين مؤقت للصور المولدة حسب القالب والجودة
+ * - توازي العمليات لتسريع المعالجة وتوليد الصورة خلال ثانية واحدة
+ * - تخفيض أبعاد الصور للمعاينات السريعة
+ * - تطبيق ضغط ذكي حسب نوع الجودة المطلوبة
+ * - استخدام WebP للمعاينات لخفض حجم الملفات وتسريع التحميل
+ * - الحد من عمليات البحث عن المسارات وتبسيط التنفيذ
  */
 
 import { createCanvas, loadImage, registerFont } from 'canvas';
@@ -25,6 +31,135 @@ import { formatDate, formatTime } from "./lib/utils";
 import { db, pool } from "./db";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
+
+// نظام تخزين مؤقت للصور المولدة لتحسين الأداء وتقليل وقت التوليد
+// يتم تخزين الصور المولدة مؤقتًا باستخدام مزيج من مسار القالب وبيانات النموذج كمفتاح
+interface CacheEntry {
+  buffer: Buffer;
+  timestamp: number;
+  path: string;
+}
+
+class ImageGenerationCache {
+  private cache: Map<string, CacheEntry> = new Map();
+  private maxEntries: number = 100; // العدد الأقصى من العناصر المخزنة مؤقتًا
+  private expiryTime: number = 3600 * 1000; // وقت انتهاء الصلاحية (ساعة واحدة)
+  
+  constructor(maxEntries: number = 100, expiryTimeMs: number = 3600 * 1000) {
+    this.maxEntries = maxEntries;
+    this.expiryTime = expiryTimeMs;
+    
+    // تنظيف الذاكرة المؤقتة كل ساعة
+    setInterval(() => this.cleanCache(), 1800 * 1000);
+  }
+  
+  // إنشاء مفتاح فريد للتخزين المؤقت
+  private createKey(templatePath: string, fields: any[], formData: any, quality: string, outputWidth: number, outputHeight: number): string {
+    // تحويل البيانات إلى سلسلة للهاشنج
+    const dataString = JSON.stringify({
+      template: templatePath,
+      width: outputWidth,
+      height: outputHeight,
+      quality,
+      // استخدام المعرفات والمواضع فقط من الحقول لتقليل حجم المفتاح
+      fields: fields.map(f => ({ 
+        id: f.id, 
+        name: f.name,
+        position: f.position,
+        type: f.type,
+        zIndex: f.zIndex
+      })),
+      // استخدام المفاتيح الأساسية فقط من بيانات النموذج
+      formData: Object.keys(formData).reduce((acc, key) => {
+        if (typeof formData[key] === 'string' || typeof formData[key] === 'number') {
+          acc[key] = formData[key];
+        }
+        return acc;
+      }, {})
+    });
+    
+    // إنشاء هاش من البيانات للحصول على مفتاح مضغوط
+    return crypto.createHash('md5').update(dataString).digest('hex');
+  }
+  
+  // الحصول على عنصر من الذاكرة المؤقتة
+  get(templatePath: string, fields: any[], formData: any, quality: string, outputWidth: number, outputHeight: number): CacheEntry | null {
+    const key = this.createKey(templatePath, fields, formData, quality, outputWidth, outputHeight);
+    const entry = this.cache.get(key);
+    
+    // التحقق من وجود العنصر وصلاحيته
+    if (entry && (Date.now() - entry.timestamp < this.expiryTime)) {
+      console.log(`✅ Cache hit for ${key.substring(0, 8)}... (${quality})`);
+      return entry;
+    }
+    
+    // حذف العنصر إذا كان منتهي الصلاحية
+    if (entry) {
+      console.log(`⏱️ Cache entry expired for ${key.substring(0, 8)}...`);
+      this.cache.delete(key);
+    } else {
+      console.log(`❓ Cache miss for ${key.substring(0, 8)}...`);
+    }
+    
+    return null;
+  }
+  
+  // إضافة عنصر إلى الذاكرة المؤقتة
+  set(templatePath: string, fields: any[], formData: any, quality: string, outputWidth: number, outputHeight: number, buffer: Buffer, path: string): void {
+    // تنظيف الذاكرة المؤقتة إذا وصلت إلى الحد الأقصى
+    if (this.cache.size >= this.maxEntries) {
+      this.cleanCache(true);
+    }
+    
+    const key = this.createKey(templatePath, fields, formData, quality, outputWidth, outputHeight);
+    this.cache.set(key, {
+      buffer,
+      timestamp: Date.now(),
+      path
+    });
+    
+    console.log(`💾 Cached image ${key.substring(0, 8)}... (${quality}, ${buffer.length} bytes)`);
+  }
+  
+  // تنظيف العناصر القديمة من الذاكرة المؤقتة
+  private cleanCache(forceClean: boolean = false): void {
+    const now = Date.now();
+    let deletedCount = 0;
+    
+    // حذف العناصر منتهية الصلاحية
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > this.expiryTime) {
+        this.cache.delete(key);
+        deletedCount++;
+      }
+    }
+    
+    // إذا كان التنظيف إجباريًا وما زلنا بحاجة إلى مساحة، احذف أقدم العناصر
+    if (forceClean && this.cache.size >= this.maxEntries * 0.9) {
+      const entries = Array.from(this.cache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      
+      // حذف 20% من أقدم العناصر
+      const deleteCount = Math.floor(this.maxEntries * 0.2);
+      for (let i = 0; i < deleteCount && i < entries.length; i++) {
+        this.cache.delete(entries[i][0]);
+        deletedCount++;
+      }
+    }
+    
+    if (deletedCount > 0) {
+      console.log(`🧹 Cleaned ${deletedCount} expired entries from image cache`);
+    }
+  }
+  
+  // الحصول على حجم الذاكرة المؤقتة الحالي
+  get size(): number {
+    return this.cache.size;
+  }
+}
+
+// إنشاء مثيل من الذاكرة المؤقتة
+const imageCache = new ImageGenerationCache(200, 12 * 3600 * 1000); // 200 صورة، صالحة لمدة 12 ساعة
 
 // تسجيل الخطوط العربية المدعومة
 try {
@@ -217,50 +352,72 @@ async function optimizeImage(
   format: 'png' | 'jpeg' = 'png',
   trimWhitespace: boolean = false
 ): Promise<Buffer> {
-  // تحديد جودة حسب الإعداد المطلوب
+  // تحسين سرعة التوليد واستخدام مستويات جودة أقل للواجهة
   let outputQuality = 100;
   
   switch (quality) {
     case 'preview': 
-      outputQuality = 80; break;
+      outputQuality = 65; break; // تخفيض جودة المعاينة إلى 65% لتسريع العرض
     case 'low': 
-      outputQuality = 90; break;
+      outputQuality = 75; break; // تخفيض الجودة المنخفضة إلى 75%
     case 'medium': 
-      outputQuality = 95; break;
+      outputQuality = 85; break; // تخفيض الجودة المتوسطة إلى 85%
     case 'high': 
+      outputQuality = 95; break; // استخدام 95% للجودة العالية
     case 'download': 
-      outputQuality = 100; break;
+      outputQuality = 100; break; // الاحتفاظ بجودة 100% للتنزيل
   }
   
-  // استخدام Sharp لضغط الصورة وتحسينها
+  // استخدام متغير مؤقت لتجنب إعادة إنشاء كائن sharp
   let sharpImg = sharp(buffer);
   
-  // معالجة الصورة لإزالة الحواف الفارغة عند التنزيل
-  // بدلاً من استخدام trim() التي قد تسبب مشاكل، نعتمد طريقة مختلفة
-  if (quality === 'download' || trimWhitespace) {
+  // تحسين سرعة المعالجة باستخدام إعدادات مختلفة حسب نوع الجودة
+  if (quality === 'preview' || quality === 'low') {
+    // للمعاينة: تقليل حجم الصورة وتبسيط المعالجة لتسريع العرض
+    sharpImg = sharpImg
+      .resize({ 
+        width: quality === 'preview' ? 800 : 1000, // تقليل الحجم للمعاينة
+        withoutEnlargement: true,
+        fastShrinkOnLoad: true // تسريع العملية
+      });
+  } else if (quality === 'download' || trimWhitespace) {
+    // للتنزيل: تحسين الجودة مع الحفاظ على التفاصيل
     try {
-      // نضبط التباين والحدة لتحسين الصورة
       sharpImg = sharpImg
-        .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } }) // تسطيح الصورة بخلفية بيضاء
-        .extend({ top: 0, right: 0, bottom: 0, left: 0 }) // ضمان عدم وجود حواف فارغة
-        .sharpen(); // تحسين حدة الصورة
-      
-      console.log('✅ تم تحسين الصورة للتنزيل');
+        .flatten({ background: { r: 255, g: 255, b: 255, alpha: 1 } })
+        .extend({ top: 0, right: 0, bottom: 0, left: 0 })
+        .sharpen();
     } catch (enhanceError) {
-      console.error('⚠️ خطأ أثناء محاولة تحسين الصورة:', enhanceError);
-      // نستمر في المعالجة رغم وجود خطأ
+      console.error('⚠️ خطأ أثناء تحسين صورة التنزيل:', enhanceError);
     }
   }
   
-  if (format === 'jpeg') {
-    sharpImg = sharpImg.jpeg({ quality: outputQuality });
-  } else {
-    // استخدام PNG للجودة العالية والشفافية
-    sharpImg = sharpImg.png({ quality: outputQuality });
+  // استخدام WebP للمعاينة لتسريع التحميل بدلا من PNG للواجهة
+  if (quality === 'preview' && format !== 'jpeg') {
+    return await sharpImg.webp({ quality: outputQuality }).toBuffer();
+  } 
+  
+  // استخدام JPEG للجودة المنخفضة والمتوسطة
+  if ((quality === 'low' || quality === 'medium') && format !== 'jpeg') {
+    return await sharpImg.jpeg({ quality: outputQuality }).toBuffer();
   }
   
-  // ضبط الحدة والتباين للحصول على صورة واضحة
-  if (quality !== 'preview') {
+  // استخدام التنسيق المطلوب للجودة العالية والتنزيل
+  if (format === 'jpeg') {
+    sharpImg = sharpImg.jpeg({ 
+      quality: outputQuality,
+      mozjpeg: quality === 'download' // استخدام mozjpeg للتنزيل فقط
+    });
+  } else {
+    sharpImg = sharpImg.png({ 
+      quality: outputQuality,
+      compressionLevel: quality === 'preview' ? 3 : quality === 'download' ? 9 : 6,
+      adaptiveFiltering: quality === 'download' // استخدام الترشيح التكيفي للتنزيل فقط
+    });
+  }
+  
+  // تخطي تحسين الحدة للمعاينة لتسريع المعالجة
+  if (quality !== 'preview' && quality !== 'low') {
     sharpImg = sharpImg.sharpen();
   }
   
@@ -282,6 +439,16 @@ export async function generateOptimizedCardImage({
   quality = 'high',
   outputFormat = 'png'
 }: GenerateCardOptions): Promise<string> {
+  // قياس زمن التنفيذ لتوليد الصورة
+  const startTime = Date.now();
+  
+  // تحسين سرعة التوليد باستخدام أبعاد أصغر للمعاينة
+  if (quality === 'preview') {
+    outputWidth = 800;
+    outputHeight = Math.round(outputHeight * (800 / 1200));
+    console.log(`Using smaller dimensions for preview: ${outputWidth}x${outputHeight}`);
+  }
+  
   // استخدام الحقول المخصصة من formData._designFields إذا كانت متوفرة
   let effectiveFields = fields;
   
@@ -291,6 +458,13 @@ export async function generateOptimizedCardImage({
     effectiveFields = formData._designFields;
   } else {
     console.log("استخدام حقول التصميم الأصلية على السيرفر:", fields.length);
+  }
+  
+  // ✨ تحسين جديد: التحقق من الذاكرة المؤقتة أولاً
+  const cachedResult = imageCache.get(templatePath, effectiveFields, formData, quality, outputWidth, outputHeight);
+  if (cachedResult) {
+    console.log(`⚡ استخدام صورة مخزنة مؤقتًا للقالب. وقت التنفيذ: ${Date.now() - startTime}ms`);
+    return cachedResult.path;
   }
   // تحميل صورة القالب مع التعامل مع مختلف أنواع المسارات
   let templateImage;
@@ -842,23 +1016,48 @@ export async function generateOptimizedCardImage({
   // تحويل الكانفاس إلى بيانات ثنائية
   const buffer = canvas.toBuffer();
   
+  // ⚡ تحسين: بدء معالجة الصورة في الخلفية مع تطبيق التوازي
+  console.log(`⏱️ Starting parallel image optimization for ${quality} quality...`);
+  
   // إعدادات معالجة الصورة
-  // إذا كانت الجودة هي 'download'، فسنقوم باستخدام معالجة خاصة لتحسين الصورة
   const isDownloadMode = quality === 'download';
-  console.log(`Image processing for ${quality} quality, special download mode: ${isDownloadMode}`);
   
   try {
-    // تحسين وضغط الصورة حسب إعدادات الجودة
-    const optimizedBuffer = await optimizeImage(buffer, quality, outputFormat, isDownloadMode);
+    // استخدام Promise.all للقيام بعمليات متوازية لتحسين الأداء
+    const [optimizedBuffer] = await Promise.all([
+      // 1. تحسين وضغط الصورة حسب إعدادات الجودة
+      optimizeImage(buffer, quality, outputFormat, isDownloadMode),
+      
+      // 2. في نفس الوقت، إنشاء إصدار منخفض الجودة للمعاينة (إذا كانت المعاينة مطلوبة)
+      // سيتم تجاهل هذه النتيجة إذا كانت الجودة المطلوبة هي 'preview' بالفعل
+      quality !== 'preview' ? optimizeImage(buffer, 'preview', 'webp', false) : Promise.resolve(null)
+    ]);
     
-    // حفظ الصورة
+    // حفظ الصورة المحسنة
     fs.writeFileSync(outputPath, optimizedBuffer);
+    
+    // ✨ تحسين جديد: تخزين الصورة المحسنة في الذاكرة المؤقتة
+    imageCache.set(templatePath, effectiveFields, formData, quality, outputWidth, outputHeight, optimizedBuffer, outputPath);
+    
+    // قياس وتسجيل الأداء
+    const generationTime = Date.now() - startTime;
+    console.log(`✅ Card image successfully generated at: ${outputPath} with quality: ${quality} in ${generationTime}ms`);
+    
+    // تحسين: حظ النجاح في تحقيق الهدف المطلوب (سرعة أقل من ثانية)
+    if (generationTime < 1000) {
+      console.log(`🚀 Image generation completed in under 1 second! (${generationTime}ms)`);
+    } else {
+      console.log(`⏳ Image generation took ${generationTime}ms - still looking for optimizations`);
+    }
   } catch (error) {
     console.error('❌ خطأ في معالجة الصورة:', error);
     
     // في حالة الخطأ، نحفظ الصورة الأصلية بدون معالجة
     fs.writeFileSync(outputPath, buffer);
     console.log('❗ تم حفظ الصورة الأصلية بدون معالجة');
+    
+    // تخزين الصورة الأصلية في الذاكرة المؤقتة للاستخدام المستقبلي
+    imageCache.set(templatePath, effectiveFields, formData, quality, outputWidth, outputHeight, buffer, outputPath);
   }
   
   return outputPath;

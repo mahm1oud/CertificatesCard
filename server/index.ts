@@ -40,6 +40,28 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // التحقق من اتصال قاعدة البيانات قبل بدء التطبيق
+  try {
+    const isDatabaseConnected = await checkDatabaseConnection();
+    if (isDatabaseConnected) {
+      console.log("✅ تم إنشاء اتصال قاعدة البيانات بنجاح");
+      
+      // تفعيل جدولة فحص صحة قاعدة البيانات في بيئة الإنتاج
+      if (app.get("env") === "production") {
+        // تشغيل فحص صحة قاعدة البيانات كل 5 دقائق
+        scheduleHealthChecks();
+        console.log("✅ تم تفعيل مراقبة صحة قاعدة البيانات");
+      }
+      
+      // إنشاء مستخدم admin افتراضي إذا لزم الأمر
+      await ensureDefaultAdminExists();
+    } else {
+      console.error("❌ فشل الاتصال بقاعدة البيانات");
+    }
+  } catch (error) {
+    console.error("❌ خطأ أثناء التحقق من اتصال قاعدة البيانات:", error);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

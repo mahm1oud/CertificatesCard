@@ -261,19 +261,8 @@ export class DatabaseStorage implements IStorage {
           await this.createCategory(category);
         }
         
-        // Add admin user with the required password (700700)
-        const hashedPassword = await hashPassword('700700');
-        
-        const adminUser: InsertUser = {
-          username: 'admin',
-          password: hashedPassword,
-          email: 'admin@example.com',
-          name: 'مدير النظام',
-          role: 'admin',
-          active: true
-        };
-        
-        await this.createUser(adminUser);
+        // نتجاهل إنشاء المستخدم admin لأن هذا يتم في ملف init-db.ts
+        // التعليق لتجنب تكرار إنشاء المستخدم وحدوث خطأ
         
         // Add sample templates (after retrieving the category IDs)
         const weddingCategory = await this.getCategoryBySlug('wedding');

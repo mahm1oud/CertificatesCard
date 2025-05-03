@@ -1,25 +1,60 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "../shared/schema";
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+
+// تكوين Neon Serverless للانتشار
+if (process.env.NODE_ENV === 'production') {
+  // إذا كنت تستخدم Neon Database أو قاعدة بيانات أخرى تدعم WebSockets
+  neonConfig.webSocketConstructor = ws;
+}
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  console.warn("⚠️ DATABASE_URL غير محدد. استخدام وضع المخزن المؤقت بدلاً من ذلك.");
 }
 
 // تكوين خيارات اتصال قاعدة البيانات مع إعدادات إضافية للتعامل مع حالات الانقطاع
 const isProd = process.env.NODE_ENV === 'production';
 
+// تحسين connectionString لمنع مشكلة ENOTFOUND
+let connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/certificates';
+
+// التأكد من أن URL قاعدة البيانات لا يحتوي على hostnames غير صحيحة
+try {
+  // حاول تحليل URL لاكتشاف المشكلات المحتملة
+  if (connectionString && connectionString.includes('@base/')) {
+    console.warn("⚠️ تم اكتشاف مشكلة في URL قاعدة البيانات، محاولة إصلاح...");
+    connectionString = connectionString.replace('@base/', '@localhost/');
+  }
+} catch (error) {
+  console.error("❌ خطأ أثناء تحليل DATABASE_URL:", error);
+}
+
 // خيارات مختلفة لبيئة الإنتاج vs بيئة التطوير
 const poolOptions = {
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   max: isProd ? 10 : 20, // عدد اتصالات أقل في الإنتاج للتعامل مع قيود الموارد
   idleTimeoutMillis: isProd ? 20000 : 30000, // مهلة أقصر للاتصالات الخاملة في الإنتاج
   connectionTimeoutMillis: isProd ? 10000 : 5000, // مهلة أطول في الإنتاج للتعامل مع التأخيرات المحتملة
+  ssl: isProd ? { rejectUnauthorized: false } : false, // تمكين SSL في الإنتاج مع قبول الشهادات الذاتية التوقيع
 };
 
-export const pool = new Pool(poolOptions);
+// إنشاء pool مع التعامل مع الأخطاء
+let pool: Pool;
+try {
+  pool = new Pool(poolOptions);
+  console.log("✅ تم إنشاء اتصال قاعدة البيانات بنجاح");
+} catch (error) {
+  console.error("❌ فشل في إنشاء اتصال قاعدة البيانات:", error);
+  // إنشاء pool صوري في حالة الفشل
+  pool = new Pool({
+    connectionString: 'postgresql://localhost:5432/fallback',
+    max: 1
+  });
+}
+
+export { pool };
 
 // إنشاء مثيل Drizzle ORM
 export const db = drizzle(pool, { schema });

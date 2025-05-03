@@ -79,6 +79,7 @@ export async function performDatabaseHealthCheck(): Promise<DatabaseHealthStatus
 /**
  * محاولة إصلاح الاتصال بقاعدة البيانات
  * يحاول إعادة إنشاء الاتصال بقاعدة البيانات بعد فشل
+ * تم تحسين الوظيفة لتجنب مشكلة "Cannot use a pool after calling end"
  * 
  * @param maxAttempts الحد الأقصى لعدد محاولات إعادة الاتصال
  * @returns حالة الإصلاح
@@ -99,23 +100,27 @@ export async function attemptDatabaseRecovery(maxAttempts: number = MAX_AUTO_REC
     console.log(`⚠️ محاولة إعادة الاتصال ${attempt}/${maxAttempts}...`);
     
     try {
-      // إعادة تهيئة مجمع الاتصالات
-      await pool.end();
-      
-      // انتظار قليل قبل إعادة المحاولة
+      // انتظار قليل قبل إعادة المحاولة (زيادة المدة مع كل محاولة)
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       
-      // اختبار الاتصال الجديد
-      const healthStatus = await performDatabaseHealthCheck();
+      // محاولة استعلام بسيط بدلًا من إنهاء المجمع
+      const client = await pool.connect();
+      const result = await client.query('SELECT 1 as connection_test');
+      client.release();
       
-      if (healthStatus.status === 'ok') {
+      // التحقق من نجاح الاستعلام
+      if (result && result.rows && result.rows[0] && result.rows[0].connection_test === 1) {
         console.log(`✅ تم إصلاح الاتصال بقاعدة البيانات بنجاح (المحاولة ${attempt})`);
+        
         return {
           status: 'ok',
           message: `تم إصلاح الاتصال بقاعدة البيانات بنجاح بعد ${attempt} محاولات`,
           timestamp: new Date(),
           recoveryAttempts: attempt,
-          details: healthStatus.details,
+          details: {
+            recoveryMethod: 'connection_retry',
+            attemptNumber: attempt
+          }
         };
       }
     } catch (error) {

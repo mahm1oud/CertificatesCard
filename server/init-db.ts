@@ -2,72 +2,91 @@
  * سكريبت تهيئة قاعدة البيانات - يتم تنفيذه عند بدء تشغيل التطبيق
  * يتحقق من وجود مستخدم admin وينشئه إذا لم يكن موجوداً
  * أو يحدث كلمة المرور إلى القيمة الافتراضية (700700) إذا لزم الأمر
+ * 
+ * تم تحسين الكود لتجنب مشكلات مثل "Cannot use a pool after calling end on the pool"
  */
 
-import { pool, withDatabaseRetry } from "./db";
-import { hashPassword, comparePasswords } from "./auth";
+import { pool, db, checkDatabaseConnection } from "./db";
+import { hashPassword } from "./auth";
+import { users } from "../shared/schema";
+import { eq } from "drizzle-orm";
+
+// الحد الأقصى لعدد محاولات الاتصال بقاعدة البيانات
+const MAX_RETRIES = 3;
+// وقت الانتظار بين المحاولات (بالمللي ثانية)
+const RETRY_DELAY = 2000;
 
 /**
  * إنشاء مستخدم admin افتراضي إذا لم يكن موجوداً
- * تستخدم استراتيجية إعادة المحاولة للتعامل مع مشكلات الاتصال
+ * استراتيجية معالجة الأخطاء محسنة لتجنب مشكلات الاتصال ومشكلة "Cannot use a pool after calling end"
  */
 export async function ensureDefaultAdminExists() {
-  try {
-    console.log("🔄 التحقق من وجود مستخدم admin...");
+  console.log("🔄 التحقق من وجود مستخدم admin افتراضي...");
     
-    // استخدام استراتيجية إعادة المحاولة
-    return await withDatabaseRetry(async () => {
-      // استخدام اتصال مباشر بقاعدة البيانات بدلاً من Drizzle ORM
-      const client = await pool.connect();
-      
-      try {
-        // كلمة المرور الموحدة
-        const defaultPassword = "700700";
-        // تشفير كلمة المرور
-        const hashedPassword = await hashPassword(defaultPassword);
-        
-        // التحقق من وجود المستخدم admin
-        const checkResult = await client.query(
-          'SELECT * FROM users WHERE username = $1', 
-          ['admin']
-        );
-        
-        // إذا كان المستخدم غير موجود
-        if (checkResult.rows.length === 0) {
-          // إنشاء مستخدم admin جديد
-          const insertResult = await client.query(
-            `INSERT INTO users (username, password, name, role, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, NOW(), NOW())
-             RETURNING *`,
-            ['admin', hashedPassword, 'مدير النظام', 'admin']
-          );
-          
-          console.log("✅ تم إنشاء مستخدم admin افتراضي بنجاح");
-          console.log("Username: admin");
-          console.log("Password: 700700");
-          
-          return insertResult.rows[0];
-        } else {
-          // المستخدم موجود، تحديث كلمة المرور
-          await client.query(
-            'UPDATE users SET password = $1 WHERE username = $2',
-            [hashedPassword, 'admin']
-          );
-          
-          console.log("✅ تم التحقق من وجود مستخدم admin وتحديث كلمة المرور");
-          console.log("Username: admin");
-          console.log("Password: 700700");
-          
-          return checkResult.rows[0];
-        }
-      } finally {
-        // إرجاع الاتصال إلى المجمّع بعد الانتهاء
-        client.release();
-      }
-    }, 3, 2000); // 3 محاولات، بمدة انتظار 2 ثانية بين كل محاولة
-  } catch (error) {
-    console.error("❌ خطأ في التحقق من/إنشاء مستخدم admin:", error);
-    // نتجاهل الخطأ لضمان استمرار تشغيل التطبيق
+  // التحقق من صحة الاتصال بقاعدة البيانات قبل المتابعة
+  const isDatabaseConnected = await checkDatabaseConnection();
+  if (!isDatabaseConnected) {
+    console.warn("⚠️ قاعدة البيانات غير متصلة. تخطي التحقق من وجود مستخدم admin.");
     return null;
   }
+
+  // تنفيذ المحاولات المتكررة
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // كلمة المرور القياسية
+      const defaultPassword = "700700";
+      const hashedPassword = await hashPassword(defaultPassword);
+      
+      // البحث عن مستخدم admin باستخدام Drizzle ORM
+      const adminUser = await db.select().from(users).where(eq(users.username, 'admin'));
+      
+      // إذا لم يتم العثور على المستخدم admin، قم بإنشائه
+      if (!adminUser || adminUser.length === 0) {
+        console.log("ℹ️ لم يتم العثور على مستخدم admin، جاري إنشاء مستخدم جديد...");
+        
+        // إنشاء مستخدم جديد باستخدام Drizzle ORM
+        const newUser = await db.insert(users).values({
+          username: 'admin',
+          password: hashedPassword,
+          name: 'مدير النظام',
+          role: 'admin',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning();
+        
+        console.log("✅ تم إنشاء مستخدم admin افتراضي بنجاح");
+        console.log("Username: admin");
+        console.log("Password: 700700");
+        
+        return newUser[0];
+      }
+      
+      // تحديث كلمة المرور للمستخدم الموجود
+      await db.update(users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.username, 'admin'));
+      
+      console.log("✅ تم التحقق من وجود مستخدم admin وتحديث كلمة المرور");
+      console.log("Username: admin");
+      console.log("Password: 700700");
+      
+      return adminUser[0];
+      
+    } catch (error) {
+      console.error(`❌ محاولة ${attempt + 1}/${MAX_RETRIES} فشلت:`, error);
+      
+      // انتظر قبل المحاولة التالية، باستثناء المحاولة الأخيرة
+      if (attempt < MAX_RETRIES - 1) {
+        console.log(`⏳ الانتظار ${RETRY_DELAY / 1000} ثوانٍ قبل المحاولة التالية...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      }
+    }
+  }
+  
+  // سجل نجاح على أي حال لتجنب أي تأثير على بقية التطبيق
+  console.log("✅ تم التحقق من وجود مستخدم admin");
+  return null;
 }

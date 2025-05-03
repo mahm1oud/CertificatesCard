@@ -30,6 +30,7 @@ import logosRouter from './api/logos';
 import signaturesRouter from './api/signatures';
 import healthCheckRouter from './api/health-check';
 import adminMaintenanceRouter from './api/admin-maintenance';
+import { getTemplateFields, updateTemplateFields, deleteTemplateField } from './api/template-fields';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup directory structure
@@ -2826,6 +2827,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: process.env.NODE_ENV || 'development'
     });
   });
+  
+  // مسارات جديدة للتعامل مع حقول القوالب مع دعم الطبقات (zIndex)
+  // الحصول على حقول قالب باستخدام معرف القالب
+  app.get("/api/admin/template-fields/:templateId", isAdmin, getTemplateFields);
+  
+  // تحديث حقول القالب (إضافة، تعديل، حذف)
+  app.put("/api/admin/template-fields/:templateId", isAdmin, updateTemplateFields);
+  
+  // حذف حقل محدد من القالب
+  app.delete("/api/admin/template-fields/:templateId/:fieldId", isAdmin, deleteTemplateField);
 
   // Create HTTP server
   const httpServer = createServer(app);
