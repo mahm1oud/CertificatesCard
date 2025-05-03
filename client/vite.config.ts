@@ -37,26 +37,47 @@ export default defineConfig(({ mode }) => {
       sourcemap: isDevelopment,
       // تحسينات بناء الإنتاج
       minify: !isDevelopment,
+      // زيادة الحد المسموح به لحجم الملفات قبل ظهور تحذير
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
           manualChunks: {
             // فصل مكتبات React الرئيسية
             react: ['react', 'react-dom'],
-            // فصل مكتبات UI المشتركة
-            ui: [
-              '@radix-ui/react-dialog',
-              '@radix-ui/react-popover',
-              '@radix-ui/react-toast',
-              'lucide-react',
+            // فصل مكتبات React Query
+            'react-query': ['@tanstack/react-query'],
+            // فصل مكتبات UI المشتركة - مقسمة إلى مجموعات صغيرة
+            'ui-core': [
               'class-variance-authority',
               'clsx',
-              'tailwind-merge',
+              'tailwind-merge'
             ],
+            'ui-radix-1': [
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-popover',
+              '@radix-ui/react-toast'
+            ],
+            'ui-radix-2': [
+              '@radix-ui/react-accordion',
+              '@radix-ui/react-alert-dialog',
+              '@radix-ui/react-tabs'
+            ],
+            'ui-radix-3': [
+              '@radix-ui/react-avatar',
+              '@radix-ui/react-checkbox',
+              '@radix-ui/react-label'
+            ],
+            'ui-icons': ['lucide-react'],
             // فصل مكتبات معالجة النماذج
             form: ['react-hook-form', '@hookform/resolvers', 'zod'],
             // فصل مكتبات الرسم والصور
-            canvas: ['konva', 'react-konva', 'fabric'],
-          }
+            konva: ['konva', 'react-konva'],
+            fabric: ['fabric']
+          },
+          // تحسين أسماء الملفات
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
         }
       }
     },
