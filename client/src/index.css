@@ -1,0 +1,232 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700&family=Tajawal:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* تنسيقات مخصصة لمحرر الطبقات */
+.layers-panel-simple {
+  position: relative;
+}
+
+.layers-panel-simple .layer-item {
+  transition: all 0.2s ease;
+}
+
+.layers-panel-simple .layer-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.draggable-fields-preview-with-layers .controls {
+  backdrop-filter: blur(8px);
+  transition: opacity 0.2s ease;
+}
+
+.draggable-fields-preview-with-layers .resize-handle {
+  width: 8px;
+  height: 8px;
+  background-color: #4f46e5;
+  border-radius: 2px;
+  border: 1px solid white;
+  position: absolute;
+}
+
+.template-image-layer {
+  position: relative;
+}
+
+.template-image-layer::after {
+  content: "طبقة صورة القالب";
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  background-color: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  border-radius: 0 0 0 4px;
+  pointer-events: none;
+}
+
+@layer components {
+  .template-preview-text {
+    @apply py-2 px-4 max-w-[80%] text-center shadow-md bg-white/20 backdrop-blur-sm rounded border border-dashed border-gray-300/60;
+    font-size: calc(var(--preview-font-size) * 1px);
+  }
+  
+  .template-editor-image {
+    @apply w-full h-full object-cover;
+  }
+  
+  .template-editor-container {
+    @apply min-h-[280px] overflow-hidden;
+  }
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 220 89% 66%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 0 73% 57%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 60 4.8% 95.9%;
+  --accent-foreground: 24 9.8% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
+  --radius: 0.5rem;
+  
+  --chart-1: 220 89% 66%;
+  --chart-2: 0 73% 57%;
+  --chart-3: 150 57% 51%;
+  --chart-4: 271 81% 56%;
+  --chart-5: 33 94% 55%;
+  
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 20 14.3% 4.1%;
+  --sidebar-primary: 220 89% 66%;
+  --sidebar-primary-foreground: 211 100% 99%;
+  --sidebar-accent: 60 4.8% 95.9%;
+  --sidebar-accent-foreground: 24 9.8% 10%;
+  --sidebar-border: 20 5.9% 90%;
+  --sidebar-ring: 20 14.3% 4.1%;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 220 89% 66%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 0 73% 57%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-[hsl(var(--border))];
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .dark body {
+    background-color: hsl(var(--background));
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Tajawal', sans-serif;
+  }
+}
+
+.shadow-text {
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.template-editor-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background-color: #f5f5f5;
+}
+
+.template-editor-container {
+  height: 500px;
+  overflow: hidden;
+  position: relative;
+  background-color: #f1f5f9;
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.template-editor-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.template-preview-text {
+  font-size: calc(var(--preview-font-size, 24) * 0.0618vw);
+  max-width: 90%;
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px dashed rgba(200, 200, 200, 0.6);
+}
+
+/* تعزيز تنسيق محرر القوالب */
+.template-editor-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.template-editor-container {
+  min-height: 300px;
+  overflow: hidden;
+  position: relative;
+  background-color: #f5f5f9;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .template-editor-container {
+  background-color: hsl(240 3.7% 15.9%);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.template-editor-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Classes for layout modes */
+.layout-boxed .container {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.layout-fluid .container {
+  max-width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
