@@ -1,0 +1,128 @@
+{
+  "app": {
+    "name": "Certificate App",
+    "baseUrl": "https://your-domain.com",
+    "port": 5000,
+    "environment": "production",
+    "defaultLanguage": "ar",
+    "supportedLanguages": ["ar", "en"]
+  },
+  "database": {
+    "type": "mysql",
+    "host": "localhost",
+    "port": 3306,
+    "database": "your_mysql_database",
+    "user": "your_mysql_username",
+    "password": "your_mysql_password",
+    "ssl": false,
+    "connectionLimit": 10
+  },
+  "storage": {
+    "type": "local",
+    "uploadPath": "./uploads",
+    "tempPath": "./temp",
+    "publicUrl": "/uploads"
+  },
+  "session": {
+    "secret": "change_this_to_a_secure_random_string",
+    "name": "certificate_app_session",
+    "maxAge": 86400000,
+    "secure": true,
+    "httpOnly": true,
+    "resave": false,
+    "saveUninitialized": false
+  },
+  "security": {
+    "bcryptRounds": 10,
+    "jwtSecret": "change_this_to_another_secure_random_string",
+    "jwtExpiresIn": "1d",
+    "csrfEnabled": true,
+    "rateLimit": {
+      "enabled": true,
+      "windowMs": 900000,
+      "max": 100
+    }
+  },
+  "mail": {
+    "enabled": false,
+    "host": "mail.your-domain.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "noreply@your-domain.com",
+      "pass": "your_email_password"
+    },
+    "from": "Certificate System <noreply@your-domain.com>"
+  },
+  "authentication": {
+    "allowRegistration": true,
+    "requireEmailVerification": false,
+    "passwordMinLength": 8,
+    "passwordRequireNumber": true,
+    "passwordRequireSpecial": true,
+    "sessionDuration": 86400000,
+    "maxLoginAttempts": 5,
+    "lockoutDuration": 1800000
+  },
+  "socialAuth": {
+    "google": {
+      "enabled": false,
+      "clientId": "",
+      "clientSecret": "",
+      "callbackUrl": "/auth/google/callback"
+    },
+    "facebook": {
+      "enabled": false,
+      "appId": "",
+      "appSecret": "",
+      "callbackUrl": "/auth/facebook/callback"
+    },
+    "twitter": {
+      "enabled": false,
+      "consumerKey": "",
+      "consumerSecret": "",
+      "callbackUrl": "/auth/twitter/callback"
+    },
+    "linkedin": {
+      "enabled": false,
+      "clientId": "",
+      "clientSecret": "",
+      "callbackUrl": "/auth/linkedin/callback"
+    }
+  },
+  "certificates": {
+    "verificationEnabled": true,
+    "verificationUrlFormat": "https://your-domain.com/verify/{code}",
+    "defaultImageQuality": 90,
+    "pdfEnabled": true,
+    "batchProcessingEnabled": true,
+    "maxBatchSize": 500
+  },
+  "backup": {
+    "enabled": true,
+    "schedule": "0 0 * * 0",
+    "maxBackups": 10,
+    "path": "./backups",
+    "compressBackups": true
+  },
+  "logging": {
+    "level": "info",
+    "file": "./logs/app.log",
+    "errorFile": "./logs/error.log",
+    "maxSize": "10m",
+    "maxFiles": 7,
+    "format": "combined"
+  },
+  "images": {
+    "maxUploadSize": 10485760,
+    "allowedTypes": ["jpg", "jpeg", "png", "svg"],
+    "imageMagickPath": "/usr/bin/convert",
+    "thumbnailWidth": 300,
+    "thumbnailQuality": 80
+  },
+  "locale": {
+    "dateFormat": "YYYY-MM-DD",
+    "timeFormat": "HH:mm:ss",
+    "timezone": "Asia/Riyadh"
+  }
+}
