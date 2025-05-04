@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1000" height="700" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#f8fafc" />
+  
+  <!-- Border with gradient -->
+  <defs>
+    <linearGradient id="border-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0891b2" />
+      <stop offset="100%" stop-color="#0e7490" />
+    </linearGradient>
+  </defs>
+  
+  <rect x="20" y="20" width="960" height="660" fill="none" stroke="url(#border-gradient)" stroke-width="8" rx="10" ry="10" />
+  
+  <!-- Header decoration -->
+  <rect x="20" y="20" width="960" height="50" fill="#0891b2" rx="10" ry="10" />
+  
+  <!-- Certificate title -->
+  <text x="500" y="130" font-family="Arial" font-size="44" font-weight="bold" text-anchor="middle" fill="#0891b2">شهادة إنجاز تقني</text>
+
+  <!-- Certificate body placeholder -->
+  <text x="500" y="200" font-family="Arial" font-size="26" text-anchor="middle" fill="#334155">تشهد بأن</text>
+  <text x="500" y="250" font-family="Arial" font-size="34" text-anchor="middle" fill="#334155">{اسم المستلم}</text>
+  
+  <text x="500" y="320" font-family="Arial" font-size="24" text-anchor="middle" fill="#334155">قد أتم بنجاح</text>
+  <text x="500" y="370" font-family="Arial" font-size="28" text-anchor="middle" fill="#334155">{الإنجاز التقني}</text>
+  
+  <!-- Date -->
+  <text x="500" y="450" font-family="Arial" font-size="20" text-anchor="middle" fill="#334155">بتاريخ: {التاريخ}</text>
+  
+  <!-- Signature area -->
+  <rect x="300" y="500" width="400" height="80" fill="#f1f5f9" rx="5" ry="5" />
+  <text x="500" y="540" font-family="Arial" font-size="18" text-anchor="middle" fill="#334155">توقيع المدرب</text>
+
+  <!-- Company logo placeholder -->
+  <circle cx="850" cy="620" r="40" fill="#e2e8f0" />
+  <text x="850" y="625" font-family="Arial" font-size="12" text-anchor="middle" fill="#64748b">شعار الشركة</text>
+
+  <!-- Footer Decoration -->
+  <rect x="20" y="650" width="960" height="30" fill="#0891b2" rx="10" ry="10" />
+</svg>

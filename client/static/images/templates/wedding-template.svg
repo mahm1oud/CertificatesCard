@@ -1,0 +1,14 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#f0f4f8" />
+  <rect x="50" y="50" width="700" height="500" rx="10" fill="#ffffff" stroke="#e1e8ed" stroke-width="2" />
+  <path d="M400 150 Q420 120, 440 150 T480 150 T520 150 T560 150" stroke="#d4af37" stroke-width="3" fill="none" />
+  <path d="M240 150 Q260 120, 280 150 T320 150 T360 150" stroke="#d4af37" stroke-width="3" fill="none" />
+  <text x="400" y="200" font-family="Arial" font-size="24" text-anchor="middle" fill="#4a5568">اسم العريس & اسم العروس</text>
+  <text x="400" y="240" font-family="Arial" font-size="16" text-anchor="middle" fill="#718096">يتشرفان بدعوتكم لحضور حفل زفافهما</text>
+  <text x="400" y="280" font-family="Arial" font-size="18" text-anchor="middle" fill="#4a5568">يوم الجمعة الموافق ١٤٤٣/١٠/١٩ هـ</text>
+  <text x="400" y="310" font-family="Arial" font-size="18" text-anchor="middle" fill="#4a5568">الساعة 8:00 مساءً</text>
+  <text x="400" y="340" font-family="Arial" font-size="18" text-anchor="middle" fill="#4a5568">قاعة فــرح - جدة</text>
+  <path d="M400 400 Q420 370, 440 400 T480 400 T520 400 T560 400" stroke="#d4af37" stroke-width="3" fill="none" />
+  <path d="M240 400 Q260 370, 280 400 T320 400 T360 400" stroke="#d4af37" stroke-width="3" fill="none" />
+  <text x="400" y="450" font-family="Arial" font-size="14" text-anchor="middle" fill="#718096">نتشرف بحضوركم</text>
+</svg>

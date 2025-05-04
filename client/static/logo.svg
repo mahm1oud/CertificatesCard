@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- خلفية شفافة للشعار -->
+  <rect width="512" height="512" rx="80" fill="none"/>
+  
+  <!-- دائرة خلفية متوهجة للشعار -->
+  <circle cx="256" cy="256" r="180" fill="url(#paint0_radial)"/>
+  
+  <!-- العنصر الرئيسي للشعار: قلب تقليدي ولكن أكثر أناقة -->
+  <path d="M256 360C253.2 360 250.4 359.2 248 357.6C211.6 331.6 184 309.2 164.8 288.8C140 262.4 128 237.6 128 210.4C128 185.6 137.6 163.2 154.4 147.2C171.2 130.4 194.4 120 219.2 120C235.2 120 250.4 124.8 264 134.4C277.6 144 288 157.6 294.4 174.4C300.8 157.6 311.2 144 324.8 134.4C338.4 124.8 353.6 120 369.6 120C394.4 120 417.6 130.4 434.4 147.2C451.2 164 460.8 186.4 460.8 210.4C460.8 237.6 448.8 262.4 424 288.8C404.8 309.2 377.2 331.6 340.8 357.6C338.4 359.2 335.6 360 332.8 360H256Z" fill="url(#paint1_linear)"/>
+  
+  <!-- زخرفة إضافية: خطوط متوهجة -->
+  <path d="M256 310C312.5 254.5 337 212.5 337 185C337 168.7 326.3 158 310 158C293.7 158 280 170 280 187H232C232 170 218.3 158 202 158C185.7 158 175 168.7 175 185C175 212.5 199.5 254.5 256 310Z" fill="url(#paint2_linear)" filter="url(#glow)"/>
+  
+  <!-- كلمة بطاقة باللغة العربية بخط أنيق -->
+  <text x="256" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="48" fill="white" filter="url(#textGlow)">بطاقة</text>
+  
+  <!-- تدرج لوني للخلفية المتوهجة -->
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(180)">
+      <stop offset="0.35" stop-color="#6366F1" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#3730A3" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- تدرج لوني للقلب الرئيسي -->
+    <linearGradient id="paint1_linear" x1="128" y1="120" x2="460.8" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FB7185"/>
+      <stop offset="0.5" stop-color="#E11D48"/>
+      <stop offset="1" stop-color="#BE123C"/>
+    </linearGradient>
+    
+    <!-- تدرج لوني للزخرفة الداخلية -->
+    <linearGradient id="paint2_linear" x1="175" y1="158" x2="337" y2="310" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FECDD3"/>
+      <stop offset="1" stop-color="#FB7185"/>
+    </linearGradient>
+    
+    <!-- تأثير التوهج للزخرفة -->
+    <filter id="glow" x="155" y="138" width="202" height="192" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"/>
+      <feOffset/>
+      <feGaussianBlur stdDeviation="5"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.984 0 0 0 0 0.447 0 0 0 0 0.525 0 0 0 0.5 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+    
+    <!-- تأثير التوهج للنص -->
+    <filter id="textGlow" x="170" y="380" width="172" height="80" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"/>
+      <feOffset/>
+      <feGaussianBlur stdDeviation="3"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.7 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+  </defs>
+</svg>
